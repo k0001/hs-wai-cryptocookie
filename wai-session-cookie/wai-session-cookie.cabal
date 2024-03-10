@@ -1,0 +1,53 @@
+cabal-version: 2.4
+name: wai-session-cookie
+version: 0.0.1
+license: Apache-2.0
+license-file: LICENSE
+extra-source-files: README.md CHANGELOG.md
+author: Renzo Carbonara
+maintainer: renλren.zone
+copyright: Renzo Carbonara, 2024
+category: Web
+build-type: Simple
+synopsis: Encrypted session cookies for WAI
+description: Encrypted session cookies for WAI
+homepage: https://gitlab.com/k0001/hs-wai-session-cookie
+bug-reports: https://gitlab.com/k0001/hs-wai-session-cookie/issues
+tested-with: GHC == 9.8.1
+
+common basic
+  default-language: GHC2021
+  build-depends: base == 4.*
+  default-extensions:
+    BlockArguments
+    DataKinds
+    DerivingStrategies
+    LambdaCase
+    OverloadedRecordDot
+    OverloadedStrings
+    TypeFamilies
+    ViewPatterns
+
+
+library
+  import: basic
+  ghc-options: -O2 -Wall
+  hs-source-dirs: lib
+  exposed-modules:
+    Wai.SessionCookie
+  other-modules:
+    Wai.SessionCookie.Internal
+    Wai.SessionCookie.AEAD_AES_128_GCM_SIV
+    Wai.SessionCookie.AEAD_AES_256_GCM_SIV
+  build-depends:
+    aeson,
+    binary,
+    bytestring,
+    cookie,
+    crypton,
+    http-types,
+    memory,
+    stm,
+    time,
+    vault,
+    wai,
