@@ -22,11 +22,12 @@
 -- associated with each 'Wai.Request'. It returns 'Nothing' if @__middleware__@ was
 -- not used on the given 'Wai.Request'.
 --
--- Finally, interact with the 'CryptoCookie' data using 'get', 'set' or 'delete'.
+-- Finally, interact with the 'CryptoCookie' data using 'get' or 'set'.
 --
 -- == FAQ: Do I store session data on the client or on the server?
 --
--- With "Wai.CryptoCookie", you can choose. Here are some ideas.
+-- With "Wai.CryptoCookie", you can choose. Here are some ideas. But please, do
+-- your own research.
 --
 -- 1. __Data on server, identifier on both__: In this approach, all the data is
 -- stored on the server. On the 'CryptoCookie', simply 'set' a unique session
@@ -39,7 +40,7 @@
 -- 2. __Data on the client, identifier on both__: In this approach, all the
 -- data and session identifier is stored on the 'CryptoCookie'. On your
 -- server-side database, store the session identifier and a timestamp
--- associated with it representing its creation time or last activity time.
+-- representing its creation time or last session activity time.
 -- Before accepting the session data from the 'CryptoCookie' as valid, check
 -- that the session identifier exists in your database, an that the time since
 -- the timestamp is acceptable.  This approach is simpler on your server-side
@@ -60,7 +61,6 @@ module Wai.CryptoCookie
     CryptoCookie
    , get
    , set
-   , delete
 
     -- * Middleware
    , middleware

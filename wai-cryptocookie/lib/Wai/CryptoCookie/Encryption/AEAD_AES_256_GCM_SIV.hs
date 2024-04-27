@@ -28,7 +28,8 @@ instance Encryption "AEAD_AES_256_GCM_SIV" where
    newtype Decrypt "AEAD_AES_256_GCM_SIV"
       = Decrypt CAES.AES256
    genKey = fmap (Key . BAS.unsafeSizedByteArray) (C.getRandomBytes 32)
-   keyFromBytes = fmap Key . BAS.fromByteArrayAccess
+   keyFromBytes =
+      maybe (Left "Bad length") (Right . Key) . BAS.fromByteArrayAccess
    keyToBytes (Key key) = BAS.convert key
    initial (Key key0) = do
       drg0 <- C.drgNew
@@ -42,11 +43,23 @@ instance Encryption "AEAD_AES_256_GCM_SIV" where
    encrypt (Encrypt aes _ nonce) plain =
       let (tag, cry) = CAGS.encrypt aes nonce B.empty $ B.toStrict plain
       in  BL.fromChunks [BA.convert nonce, BA.convert tag, cry]
-   decrypt (Decrypt aes) raw = do
-      BAP.ParseOK _ (nonce, tag, cry) <-
-         pure $ flip BAP.parse (B.toStrict raw) do
-            C.CryptoPassed nonce <- CAGS.nonce <$> BAP.take 12
-            tag <- CAES.AuthTag . BA.convert <$> BAP.take 16
-            cry <- BAP.takeAll
-            pure (nonce, tag, cry)
-      BL.fromStrict <$> CAGS.decrypt aes nonce B.empty cry tag
+   decrypt = \(Decrypt aes) raw -> do
+      (nonce, tag, cry) <- fromResult $ BAP.parse p (B.toStrict raw)
+      case CAGS.decrypt aes nonce B.empty cry tag of
+         Just x -> pure $ BL.fromStrict x
+         Nothing -> Left "Can't decrypt"
+     where
+      p :: BAP.Parser B.ByteString (CAGS.Nonce, CAES.AuthTag, B.ByteString)
+      p = do
+         C.CryptoPassed nonce <- CAGS.nonce <$> BAP.take 12
+         tag <- CAES.AuthTag . BA.convert <$> BAP.take 16
+         cry <- BAP.takeAll
+         pure (nonce, tag, cry)
+
+fromResult :: BAP.Result B.ByteString a -> Either String a
+fromResult = \case
+   BAP.ParseOK rest a
+      | B.null rest -> Right a
+      | otherwise -> Left "Leftovers"
+   BAP.ParseMore f -> fromResult (f Nothing)
+   BAP.ParseFail e -> Left e

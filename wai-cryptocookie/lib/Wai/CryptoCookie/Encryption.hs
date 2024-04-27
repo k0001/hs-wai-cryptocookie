@@ -51,7 +51,7 @@ class (KnownNat (KeyLength e), Eq (Key e)) => Encryption (e :: k) where
    genKey :: (C.MonadRandom m) => m (Key e)
 
    -- | Load a 'Key' from its bytes representation, if possible.
-   keyFromBytes :: (BA.ByteArrayAccess raw) => raw -> Maybe (Key e)
+   keyFromBytes :: (BA.ByteArrayAccess raw) => raw -> Either String (Key e)
 
    -- | Dump the bytes representation of a 'Key'.
    keyToBytes :: (BAS.ByteArrayN (KeyLength e) raw) => Key e -> raw
@@ -76,7 +76,7 @@ class (KnownNat (KeyLength e), Eq (Key e)) => Encryption (e :: k) where
    encrypt :: Encrypt e -> BL.ByteString -> BL.ByteString
 
    -- | Decrypt a message according to the 'Decrypt'ion context.
-   decrypt :: Decrypt e -> BL.ByteString -> Maybe BL.ByteString
+   decrypt :: Decrypt e -> BL.ByteString -> Either String BL.ByteString
 
 -- | If the 'FilePath' exists, then read the base-16 representation of
 -- a 'Key' from it. Ignores trailing newlines.
@@ -137,12 +137,11 @@ readKeyFile g path = liftIO do
       when (rlen /= flen) do
          -- This shouldn't happen, but we are being extra careful.
          fail "readKeyFile: could not read key file"
-      print (BA.convertToBase BA.Base16 fraw :: BA.Bytes)
       case g fraw of
          Left e -> fail $ "readKeyFile: " <> e
-         Right kraw
-            | Just key <- keyFromBytes kraw -> pure key
-            | otherwise -> fail "readKeyFile: invalid key"
+         Right kraw -> case keyFromBytes kraw of
+            Right key -> pure key
+            Left err -> fail $ "readKeyFile: " <> err
 
 -- | Save a key to a file.
 writeKeyFile
@@ -164,6 +163,8 @@ instance (Encryption e) => Ae.FromJSON (Key e) where
    parseJSON = Ae.withText "Key" \t ->
       -- Note that un-scrubbable bytes will continue to exist in @t@.
       case BA.convertFromBase BA.Base16 (T.encodeUtf8 t) of
-         Right (kraw :: BA.ScrubbedBytes)
-            | Just key <- keyFromBytes kraw -> pure key
+         Right (kraw :: BA.ScrubbedBytes) ->
+            case keyFromBytes kraw of
+               Right key -> pure key
+               Left err -> fail err
          _ -> fail "Invalid key"

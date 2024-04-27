@@ -6,7 +6,6 @@ module Wai.CryptoCookie.Middleware
    , CryptoCookie
    , get
    , set
-   , delete
    , middleware
    ) where
 
@@ -70,31 +69,27 @@ newEnv Config{key, encoding, setCookie} = do
          { encrypt = \raw -> do
             ec <- atomicModifyIORef' ecRef \ec -> (advance ec, ec)
             pure $ encrypt ec raw
-         , decrypt = decrypt dc
+         , decrypt = either (const Nothing) Just . decrypt dc
          , encoding
          , setCookie
          }
 
 -- | Read-write access to the "Wai.CryptoCookie" data.
 --
--- See 'get', 'delete', 'set'.
+-- See 'get' and set'.
 data CryptoCookie a = CryptoCookie (Maybe a) (TVar (Maybe (Maybe a)))
 
 -- | The data that came through the 'Wai.Request' cookie, if any.
 get :: CryptoCookie a -> Maybe a
 get (CryptoCookie x _) = x
 
--- | Cause the next 'Wai.Response' to set the cookie to the specified value.
+-- | Cause the eventual 'Wai.Response' corresponding to the current
+-- 'Wai.request' to set the cookie to the specified value if 'Just', or delete
+-- it if 'Nothing'.
 --
--- Overrides previous uses of 'set' and 'delete'.
-set :: CryptoCookie a -> a -> STM ()
-set (CryptoCookie _ x) = writeTVar x . Just . Just
-
--- | Cause the next 'Wai.Response' to delete the cookie.
---
--- Overrides previous uses of 'set' and 'delete'.
-delete :: CryptoCookie a -> STM ()
-delete (CryptoCookie _ x) = writeTVar x $ Just Nothing
+-- Overrides previous uses of 'set'.
+set :: CryptoCookie a -> Maybe a -> STM ()
+set (CryptoCookie _ x) = writeTVar x . Just
 
 -- | Construct a new 'Middleware', and function that can be used to look-up the
 -- 'CryptoCookie' on each incoming 'Wai.Request'. Said function returns

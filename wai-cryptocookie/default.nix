@@ -11,7 +11,7 @@ mkDerivation {
     text time vault wai
   ];
   testHaskellDepends = [
-    aeson base binary directory filepath stm wai wai-extra
+    aeson base binary directory filepath http-types stm wai wai-extra
   ];
   homepage = "https://gitlab.com/k0001/hs-wai-cryptocookie";
   description = "Encrypted cookies for WAI";

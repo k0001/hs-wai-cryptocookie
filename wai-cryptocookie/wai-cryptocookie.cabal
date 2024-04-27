@@ -67,6 +67,7 @@ test-suite test
     binary,
     directory,
     filepath,
+    http-types,
     wai,
     wai-cryptocookie,
     wai-extra,
