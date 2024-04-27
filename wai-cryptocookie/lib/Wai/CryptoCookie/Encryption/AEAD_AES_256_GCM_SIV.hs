@@ -1,7 +1,7 @@
-{-# OPTIONS_GHC -Wno-orphans #-}
 {-# LANGUAGE StrictData #-}
+{-# OPTIONS_GHC -Wno-orphans #-}
 
-module Wai.SessionCookie.AEAD_AES_256_GCM_SIV () where
+module Wai.CryptoCookie.Encryption.AEAD_AES_256_GCM_SIV () where
 
 import Crypto.Cipher.AES qualified as CAES
 import Crypto.Cipher.AESGCMSIV qualified as CAGS
@@ -14,19 +14,22 @@ import Data.ByteArray.Sized qualified as BAS
 import Data.ByteString qualified as B
 import Data.ByteString.Lazy qualified as BL
 
-import Wai.SessionCookie.Internal
+import Wai.CryptoCookie.Encryption
 
+-- | @AEAD_AES_256_GCM_SIV@ is a nonce-misuse resistant AEAD encryption scheme
+-- defined in <https://tools.ietf.org/html/rfc8452 RFC 8452>.
 instance Encryption "AEAD_AES_256_GCM_SIV" where
    newtype Key "AEAD_AES_256_GCM_SIV"
       = Key (BAS.SizedByteArray 32 BA.ScrubbedBytes)
+      deriving newtype (Eq)
    type KeyLength "AEAD_AES_256_GCM_SIV" = 32
    data Encrypt "AEAD_AES_256_GCM_SIV"
       = Encrypt CAES.AES256 C.ChaChaDRG CAGS.Nonce
    newtype Decrypt "AEAD_AES_256_GCM_SIV"
       = Decrypt CAES.AES256
    genKey = fmap (Key . BAS.unsafeSizedByteArray) (C.getRandomBytes 32)
-   loadKey = fmap Key . BAS.fromByteArrayAccess
-   dumpKey (Key key) = BAS.convert key
+   keyFromBytes = fmap Key . BAS.fromByteArrayAccess
+   keyToBytes (Key key) = BAS.convert key
    initial (Key key0) = do
       drg0 <- C.drgNew
       let (nonce, drg1) = C.withDRG drg0 CAGS.generateNonce
@@ -47,4 +50,3 @@ instance Encryption "AEAD_AES_256_GCM_SIV" where
             cry <- BAP.takeAll
             pure (nonce, tag, cry)
       BL.fromStrict <$> CAGS.decrypt aes nonce B.empty cry tag
-

@@ -1,7 +1,7 @@
 {-# LANGUAGE StrictData #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
-module Wai.SessionCookie.AEAD_AES_128_GCM_SIV () where
+module Wai.CryptoCookie.Encryption.AEAD_AES_128_GCM_SIV () where
 
 import Crypto.Cipher.AES qualified as CAES
 import Crypto.Cipher.AESGCMSIV qualified as CAGS
@@ -14,19 +14,22 @@ import Data.ByteArray.Sized qualified as BAS
 import Data.ByteString qualified as B
 import Data.ByteString.Lazy qualified as BL
 
-import Wai.SessionCookie.Internal
+import Wai.CryptoCookie.Encryption
 
+-- | @AEAD_AES_128_GCM_SIV@ is a nonce-misuse resistant AEAD encryption scheme
+-- defined in <https://tools.ietf.org/html/rfc8452 RFC 8452>.
 instance Encryption "AEAD_AES_128_GCM_SIV" where
    newtype Key "AEAD_AES_128_GCM_SIV"
       = Key (BAS.SizedByteArray 16 BA.ScrubbedBytes)
+      deriving newtype (Eq)
    type KeyLength "AEAD_AES_128_GCM_SIV" = 16
    data Encrypt "AEAD_AES_128_GCM_SIV"
       = Encrypt CAES.AES128 C.ChaChaDRG CAGS.Nonce
    newtype Decrypt "AEAD_AES_128_GCM_SIV"
       = Decrypt CAES.AES128
    genKey = fmap (Key . BAS.unsafeSizedByteArray) (C.getRandomBytes 16)
-   loadKey = fmap Key . BAS.fromByteArrayAccess
-   dumpKey (Key key) = BAS.convert key
+   keyFromBytes = fmap Key . BAS.fromByteArrayAccess
+   keyToBytes (Key key) = BAS.convert key
    initial (Key key0) = do
       drg0 <- C.drgNew
       let (nonce, drg1) = C.withDRG drg0 CAGS.generateNonce
@@ -47,43 +50,3 @@ instance Encryption "AEAD_AES_128_GCM_SIV" where
             cry <- BAP.takeAll
             pure (nonce, tag, cry)
       BL.fromStrict <$> CAGS.decrypt aes nonce B.empty cry tag
-
--- newtype Key = Key (BAS.SizedByteArray KeyLength BA.ScrubbedBytes)
---    deriving newtype (Eq)
---
--- type KeyLength = 16
---
--- genKey :: (C.MonadRandom m) => m Key
--- genKey = fmap (Key . BAS.unsafeSizedByteArray) (C.getRandomBytes 16)
---
--- loadKey :: (BA.ByteArrayAccess raw) => raw -> Maybe Key
--- loadKey = fmap Key . BAS.fromByteArrayAccess
---
--- dumpKey :: (BAS.ByteArrayN KeyLength raw) => Key -> raw
--- dumpKey (Key key) = BAS.convert key
---
--- keyToCipher :: Key -> CAES.AES128
--- keyToCipher (Key key0) =
---    let key1 = BA.convert key0 :: BA.ScrubbedBytes
---    in  C.throwCryptoError $ CAES.cipherInit key1
---
--- cryption :: Key -> Cryption
--- cryption (keyToCipher -> aes) =
---    Cryption
---       { initial = do
---          drg <- C.drgNew
---          pure (C.withDRG drg CAGS.generateNonce, ())
---       , advance = \(_, drg) ->
---          C.withDRG drg CAGS.generateNonce
---       , encrypt = \(nonce, _) plain ->
---          let (tag, cry) = CAGS.encrypt aes nonce B.empty $ B.toStrict plain
---          in  BL.fromChunks [BA.convert nonce, BA.convert tag, cry]
---       , decrypt = \() raw -> do
---          BAP.ParseOK _ (nonce, tag, cry) <-
---             pure $ flip BAP.parse (B.toStrict raw) do
---                C.CryptoPassed nonce <- CAGS.nonce <$> BAP.take 12
---                tag <- CAES.AuthTag . BA.convert <$> BAP.take 16
---                cry <- BAP.takeAll
---                pure (nonce, tag, cry)
---          BL.fromStrict <$> CAGS.decrypt aes nonce B.empty cry tag
---       }

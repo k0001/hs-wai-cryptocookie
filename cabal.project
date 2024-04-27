@@ -4,4 +4,4 @@ optimization: True
 documentation: True
 tests: True
 packages:
-  ./wai-session-cookie
+  ./wai-cryptocookie

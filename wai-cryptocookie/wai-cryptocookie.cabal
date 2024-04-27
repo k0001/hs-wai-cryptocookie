@@ -1,5 +1,5 @@
 cabal-version: 2.4
-name: wai-session-cookie
+name: wai-cryptocookie
 version: 0.0.1
 license: Apache-2.0
 license-file: LICENSE
@@ -9,10 +9,10 @@ maintainer: renλren.zone
 copyright: Renzo Carbonara, 2024
 category: Web
 build-type: Simple
-synopsis: Encrypted session cookies for WAI
-description: Encrypted session cookies for WAI
-homepage: https://gitlab.com/k0001/hs-wai-session-cookie
-bug-reports: https://gitlab.com/k0001/hs-wai-session-cookie/issues
+synopsis: Encrypted cookies for WAI
+description: Encrypted cookies for WAI
+homepage: https://gitlab.com/k0001/hs-wai-cryptocookie
+bug-reports: https://gitlab.com/k0001/hs-wai-cryptocookie/issues
 tested-with: GHC == 9.8.1
 
 common basic
@@ -22,6 +22,7 @@ common basic
     BlockArguments
     DataKinds
     DerivingStrategies
+    DuplicateRecordFields
     LambdaCase
     OverloadedRecordDot
     OverloadedStrings
@@ -34,11 +35,13 @@ library
   ghc-options: -O2 -Wall
   hs-source-dirs: lib
   exposed-modules:
-    Wai.SessionCookie
+    Wai.CryptoCookie
+    Wai.CryptoCookie.Encoding
+    Wai.CryptoCookie.Encryption
   other-modules:
-    Wai.SessionCookie.Internal
-    Wai.SessionCookie.AEAD_AES_128_GCM_SIV
-    Wai.SessionCookie.AEAD_AES_256_GCM_SIV
+    Wai.CryptoCookie.Encryption.AEAD_AES_128_GCM_SIV
+    Wai.CryptoCookie.Encryption.AEAD_AES_256_GCM_SIV
+    Wai.CryptoCookie.Middleware
   build-depends:
     aeson,
     binary,
@@ -48,6 +51,7 @@ library
     http-types,
     memory,
     stm,
+    text,
     time,
     vault,
     wai,
