@@ -19,15 +19,16 @@
 -- "Network.Wai".'Wai.Application'.
 --
 -- The obtained @__lookup__@ function can be used to obtain the 'CryptoCookie'
--- associated with each 'Wai.Request'. It returns 'Nothing' if @__middleware__@ was
--- not used on the given 'Wai.Request'.
+-- associated with each 'Wai.Request'. It returns 'Nothing' if this particular
+-- @__middleware__@ was not used on the given 'Wai.Request'.
 --
 -- Finally, interact with the 'CryptoCookie' data using 'get' or 'set'.
 --
--- == FAQ: Do I store session data on the client or on the server?
+-- == Do I store session data on the client or on the server?
 --
--- With "Wai.CryptoCookie", you can choose. Here are some ideas. But please, do
--- your own research.
+-- It's not so much about /where/ to store the session data, but about /how/ to
+-- store it and /how/ to expire it.  Here are some ideas. But please, do your
+-- own research.
 --
 -- 1. __Data on server, identifier on both__: In this approach, all the data is
 -- stored on the server. On the 'CryptoCookie', simply 'set' a unique session
@@ -42,20 +43,21 @@
 -- server-side database, store the session identifier and a timestamp
 -- representing its creation time or last session activity time.
 -- Before accepting the session data from the 'CryptoCookie' as valid, check
--- that the session identifier exists in your database, an that the time since
+-- that the session identifier exists in your database, and that the time since
 -- the timestamp is acceptable.  This approach is simpler on your server-side
 -- database, but it can lead to more network traffic, and schema migrations for
 -- session data will be complex if you care about backwards compatibility
 -- with currently active sessions.
 --
 -- 3. __Everything on the client__: You can store everything in the
--- 'CryptoCookie'.  However, you will be suceptible to /replay attacks/
+-- 'CryptoCookie'.  However, you will be more suceptible to /replay attacks/
 -- because you won't have control over session expiration beyond comparing the
 -- current time against the session creation timestamp or last activity
 -- timestamp previously set in the session data.  You can force all the
--- existing sessions to “expire” by rotating your encryption 'Key'. Also,
--- schema migrations for session data will be complex if you care about
--- backwards compatibility with currently active sessions.
+-- existing sessions to “expire” by rotating your encryption 'Key'. Also, this
+-- approach can lead to more network traffic, and schema migrations for session
+-- data will be complex if you care about backwards compatibility with
+-- currently active sessions.
 module Wai.CryptoCookie
    ( -- * Cookie data
     CryptoCookie

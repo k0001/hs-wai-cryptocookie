@@ -76,7 +76,7 @@ newEnv Config{key, encoding, setCookie} = do
 
 -- | Read-write access to the "Wai.CryptoCookie" data.
 --
--- See 'get' and set'.
+-- See 'get' and 'set'.
 data CryptoCookie a = CryptoCookie (Maybe a) (TVar (Maybe (Maybe a)))
 
 -- | The data that came through the 'Wai.Request' cookie, if any.
@@ -84,8 +84,8 @@ get :: CryptoCookie a -> Maybe a
 get (CryptoCookie x _) = x
 
 -- | Cause the eventual 'Wai.Response' corresponding to the current
--- 'Wai.request' to set the cookie to the specified value if 'Just', or delete
--- it if 'Nothing'.
+-- 'Wai.Request' to set the cookie to the specified value if 'Just', or expire
+-- (/delete/) the cookie if 'Nothing'.
 --
 -- Overrides previous uses of 'set'.
 set :: CryptoCookie a -> Maybe a -> STM ()
