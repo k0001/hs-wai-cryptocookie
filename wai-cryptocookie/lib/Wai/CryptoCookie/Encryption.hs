@@ -76,6 +76,8 @@ class (KnownNat (KeyLength e), Eq (Key e)) => Encryption (e :: k) where
    encrypt :: Encrypt e -> BL.ByteString -> BL.ByteString
 
    -- | Decrypt a message according to the 'Decrypt'ion context.
+   --
+   -- The 'String' is for internal debugging purposes only.
    decrypt :: Decrypt e -> BL.ByteString -> Either String BL.ByteString
 
 -- | If the 'FilePath' exists, then read the base-16 representation of

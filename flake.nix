@@ -34,18 +34,19 @@
           overlays = [ inputs.self.overlays.default ];
         };
         packages = {
-          #wai-cryptocookie__ghc96 =
-          #  pkgs.haskell.packages.ghc96.wai-cryptocookie;
           wai-cryptocookie__ghc98 =
             pkgs.haskell.packages.ghc98.wai-cryptocookie;
+          wai-cryptocookie__ghc98__sdist =
+            pkgs.haskell.packages.ghc98.cabalSdist { src = ./wai-cryptocookie; };
+          wai-cryptocookie__ghc98__sdistDoc =
+            pkgs.haskell.lib.documentationTarball config.packages.wai-cryptocookie__ghc98;
           default = pkgs.releaseTools.aggregate {
             name = "every output from this flake";
             constituents = [
-              #config.packages.wai-cryptocookie__ghc96
-              #config.packages.wai-cryptocookie__ghc96.doc
-              #config.devShells.ghc96
               config.packages.wai-cryptocookie__ghc98
               config.packages.wai-cryptocookie__ghc98.doc
+              config.packages.wai-cryptocookie__ghc98__sdist
+              config.packages.wai-cryptocookie__ghc98__sdistDoc
               config.devShells.ghc98
             ];
           };
@@ -60,7 +61,6 @@
             };
         in {
           default = config.devShells.ghc98;
-          #ghc96 = mkShellFor pkgs.haskell.packages.ghc96;
           ghc98 = mkShellFor pkgs.haskell.packages.ghc98;
         };
       };
