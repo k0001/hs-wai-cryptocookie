@@ -34,8 +34,7 @@ instance Encryption "AEAD_AES_256_GCM_SIV" where
    initial (Key key0) = do
       drg0 <- C.drgNew
       let (nonce, drg1) = C.withDRG drg0 CAGS.generateNonce
-          key1 = BA.convert key0 :: BA.ScrubbedBytes
-          aes = C.throwCryptoError $ CAES.cipherInit key1
+          aes = C.throwCryptoError $ CAES.cipherInit $ BAS.unSizedByteArray key0
       pure (Encrypt aes drg1 nonce, Decrypt aes)
    advance (Encrypt aes drg0 _) =
       let (nonce, drg1) = C.withDRG drg0 CAGS.generateNonce
