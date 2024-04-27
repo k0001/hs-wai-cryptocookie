@@ -13,7 +13,7 @@ mkDerivation {
   testHaskellDepends = [
     aeson base binary directory filepath http-types stm wai wai-extra
   ];
-  homepage = "https://gitlab.com/k0001/hs-wai-cryptocookie";
+  homepage = "https://github.com/k0001/hs-wai-cryptocookie";
   description = "Encrypted cookies for WAI";
   license = lib.licenses.asl20;
 }

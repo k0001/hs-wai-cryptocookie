@@ -11,8 +11,8 @@ category: Web
 build-type: Simple
 synopsis: Encrypted cookies for WAI
 description: Encrypted cookies for WAI
-homepage: https://gitlab.com/k0001/hs-wai-cryptocookie
-bug-reports: https://gitlab.com/k0001/hs-wai-cryptocookie/issues
+homepage: https://github.com/k0001/hs-wai-cryptocookie
+bug-reports: https://github.com/k0001/hs-wai-cryptocookie/issues
 tested-with: GHC == 9.8.1
 
 common basic
