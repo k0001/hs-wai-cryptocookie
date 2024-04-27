@@ -19,7 +19,6 @@ import Data.Aeson qualified as Ae
 import Data.Bits
 import Data.ByteArray qualified as BA
 import Data.ByteArray.Encoding qualified as BA
-import Data.ByteArray.Parse qualified as BAP
 import Data.ByteArray.Sized qualified as BAS
 import Data.ByteString.Lazy qualified as BL
 import Data.Char qualified as Char
@@ -108,20 +107,15 @@ readKeyFileBase16
     . (Encryption e, MonadIO m)
    => FilePath
    -> m (Key e)
-readKeyFileBase16 = readKeyFile \a -> case BAP.parse p a of
-   BAP.ParseOK _ b -> BA.convertFromBase BA.Base16 b
-   _ -> Left "can't parse key"
+readKeyFileBase16 = readKeyFile \a ->
+   case BA.span (not . rn) a of
+      (pre, pos)
+         | BA.all rn pos -> BA.convertFromBase BA.Base16 pre
+         | otherwise -> Left "invalid format"
   where
-   p :: BAP.Parser BA.ScrubbedBytes BA.ScrubbedBytes
-   p = do
-      -- We optionally skip trailing newlines.
-      let rn = \w -> w == _r || w == _n
-      x <- BAP.takeWhile (not . rn)
-      BAP.skipWhile rn
-      False <- BAP.hasMore
-      pure x
    _r :: Word8 = fromIntegral (Char.ord '\r')
    _n :: Word8 = fromIntegral (Char.ord '\n')
+   rn :: Word8 -> Bool = \w -> w == _r || w == _n
 
 -- | Read a 'Key' from a file.
 readKeyFile
@@ -143,6 +137,7 @@ readKeyFile g path = liftIO do
       when (rlen /= flen) do
          -- This shouldn't happen, but we are being extra careful.
          fail "readKeyFile: could not read key file"
+      print (BA.convertToBase BA.Base16 fraw :: BA.Bytes)
       case g fraw of
          Left e -> fail $ "readKeyFile: " <> e
          Right kraw
@@ -159,13 +154,13 @@ writeKeyFile
    -> Key e
    -> m ()
 writeKeyFile g path key = liftIO do
-   kraw <- Ex.evaluate $ g $ keyToBytes key
+   kout <- Ex.evaluate $ g $ keyToBytes key
    IO.withFile path IO.WriteMode \h ->
-      BA.withByteArray kraw \p ->
-         IO.hPutBuf h p $ BA.length kraw
+      BA.withByteArray kout \p ->
+         IO.hPutBuf h p $ BA.length kout
 
 -- | Base-16 encoded.
-instance Encryption e => Ae.FromJSON (Key e) where
+instance (Encryption e) => Ae.FromJSON (Key e) where
    parseJSON = Ae.withText "Key" \t ->
       -- Note that un-scrubbable bytes will continue to exist in @t@.
       case BA.convertFromBase BA.Base16 (T.encodeUtf8 t) of

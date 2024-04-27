@@ -55,3 +55,20 @@ library
     time,
     vault,
     wai,
+
+test-suite test
+  import: basic
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is: Main.hs
+  ghc-options: -threaded -with-rtsopts=-N
+  build-depends:
+    aeson,
+    binary,
+    directory,
+    filepath,
+    wai,
+    wai-cryptocookie,
+    wai-extra,
+    stm,
+

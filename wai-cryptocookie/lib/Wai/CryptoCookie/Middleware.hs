@@ -7,7 +7,7 @@ module Wai.CryptoCookie.Middleware
    , get
    , set
    , delete
-   , newMiddleware
+   , middleware
    ) where
 
 import Control.Concurrent.STM
@@ -31,7 +31,7 @@ import Web.Cookie
 import Wai.CryptoCookie.Encoding (Encoding (..))
 import Wai.CryptoCookie.Encryption (Encryption (..))
 
--- | Configuration for 'newMiddleware'.
+-- | Configuration for 'middleware'.
 --
 -- Consider using 'Wai.CryptoCookie.defaultConfig' and
 -- updating desired fields only.
@@ -99,13 +99,13 @@ delete (CryptoCookie _ x) = writeTVar x $ Just Nothing
 -- | Construct a new 'Middleware', and function that can be used to look-up the
 -- 'CryptoCookie' on each incoming 'Wai.Request'. Said function returns
 -- 'Nothing' if the 'Middleware' was not used on the 'Wai.Request'.
-newMiddleware
+middleware
    :: forall a m
     . (MonadIO m)
    => Config a
    -- ^ Consider using 'Wai.CryptoCookie.defaultConfig'.
    -> m (Wai.Middleware, Wai.Request -> Maybe (CryptoCookie a))
-newMiddleware c = liftIO do
+middleware c = liftIO do
    env <- newEnv c
    vk :: V.Key (CryptoCookie a) <- V.newKey
    pure

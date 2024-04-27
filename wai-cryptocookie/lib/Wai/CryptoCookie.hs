@@ -12,7 +12,7 @@
 -- @
 -- do (__middleware__, __lookup__) <- do
 --       key <- "Wai.CryptoCookie".'autoKeyFileBase16' \"\/run\/my-cookie-encryption-key\"
---       "Wai.CryptoCookie".'newMiddleware' ("Wai.CryptoCookie".'defaultConfig' key)
+--       "Wai.CryptoCookie".'middleware' ("Wai.CryptoCookie".'defaultConfig' key)
 -- @
 --
 -- The obtained @__middleware__@ shall be applied to your
@@ -63,7 +63,7 @@ module Wai.CryptoCookie
    , delete
 
     -- * Middleware
-   , newMiddleware
+   , middleware
    , defaultConfig
    , Config (..)
    , autoKeyFileBase16
