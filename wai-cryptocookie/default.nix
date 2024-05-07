@@ -1,14 +1,14 @@
 { mkDerivation, aeson, base, binary, bytestring, cookie, crypton
 , directory, filepath, http-types, lib, memory, stm, text, time
-, vault, wai, wai-extra
+, wai, wai-extra
 }:
 mkDerivation {
   pname = "wai-cryptocookie";
-  version = "0.0.1";
+  version = "0.1";
   src = ./.;
   libraryHaskellDepends = [
     aeson base binary bytestring cookie crypton http-types memory stm
-    text time vault wai
+    text time wai
   ];
   testHaskellDepends = [
     aeson base binary directory filepath http-types stm wai wai-extra

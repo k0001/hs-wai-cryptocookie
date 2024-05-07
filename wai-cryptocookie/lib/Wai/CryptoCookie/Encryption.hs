@@ -58,9 +58,10 @@ class (KnownNat (KeyLength e), Eq (Key e)) => Encryption (e :: k) where
 
    -- | Generate initial 'Encrypt'ion and 'Decrypt'ion context for a 'Key'.
    --
-   -- The 'Encrypt'ion context could carry for example the next nonce to use
-   -- for 'encrypt'ion, the 'Key' itself or its derivative used during the
-   -- actual 'encrypt'ion process, or a deterministic random number generator.
+   -- The 'Encrypt'ion context could carry for example the next
+   -- __randomly generated nonce__ to use for 'encrypt'ion, the 'Key'
+   -- itself or its derivative used during the actual 'encrypt'ion
+   -- process, or a deterministic random number generator.
    --
    -- The 'Decrypt'ion context could carry for example the 'Key' itself or its
    -- derivative used during the 'decrypt'ion process.

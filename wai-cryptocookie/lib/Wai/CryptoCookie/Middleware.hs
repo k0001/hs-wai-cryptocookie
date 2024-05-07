@@ -18,7 +18,6 @@ import Data.IORef
 import Data.Kind (Type)
 import Data.List (find)
 import Data.Time.Clock.POSIX qualified as Time
-import Data.Vault.Lazy qualified as V
 import Network.Wai qualified as Wai
 import Web.Cookie
    ( SetCookie (..)
@@ -91,31 +90,36 @@ get (CryptoCookie x _) = x
 set :: CryptoCookie a -> Maybe a -> STM ()
 set (CryptoCookie _ x) = writeTVar x . Just
 
--- | Construct a new 'Middleware', and function that can be used to look-up the
--- 'CryptoCookie' on each incoming 'Wai.Request'. Said function returns
--- 'Nothing' if the 'Middleware' was not used on the 'Wai.Request'.
+-- | Obtain a new 'Wai.Application'-transforming function (more or less a
+-- 'Wai.Middleware') wherein the 'Wai.Application' being transformed can interact
+-- with a 'CryptoCookie'.
+--
+-- * 'middleware' can be called multiple times as long as the 'setCookieName'
+-- for the 'SetCookie' specified in 'Config' is different each time.
+--
+-- * It is safe to reuse the same 'Key' for multiple 'middleware' calls.  Each
+-- time the 'Key' will have a different randomly 'initial'ized 'Encrypt'ion
+-- context.
 middleware
    :: forall a m
     . (MonadIO m)
    => Config a
    -- ^ Consider using 'Wai.CryptoCookie.defaultConfig'.
-   -> m (Wai.Middleware, Wai.Request -> Maybe (CryptoCookie a))
+   -> m ((CryptoCookie a -> Wai.Application) -> Wai.Application)
+   -- ^ Remember that 'Wai.Middleware' is a type-synonym for
+   -- @'Wai.Application' -> 'Wai.Application'@.  This type is not too different
+   -- from that.
 middleware c = liftIO do
    env <- newEnv c
-   vk :: V.Key (CryptoCookie a) <- V.newKey
-   pure
-      ( \app req respond -> do
-         tv <- newTVarIO Nothing
-         let ck = CryptoCookie (getRequestCookieData env req) tv
-         app (req{Wai.vault = V.insert vk ck (Wai.vault req)}) \res -> do
-            yya1 <- readTVarIO tv
-            let f = case yya1 of
-                  Nothing -> pure
-                  Just Nothing -> expireResponseCookieData env
-                  Just (Just a1) -> setResponseCookieData env a1
-            respond =<< f res
-      , \req -> V.lookup vk (Wai.vault req)
-      )
+   pure \fapp -> \req respond -> do
+      tv <- newTVarIO Nothing
+      fapp (CryptoCookie (getRequestCookieData env req) tv) req \res -> do
+         yya1 <- readTVarIO tv
+         let f = case yya1 of
+               Nothing -> pure
+               Just Nothing -> expireResponseCookieData env
+               Just (Just a1) -> setResponseCookieData env a1
+         respond =<< f res
 
 -- | Find, decrypt and decode the cookie value from the 'Wai.Request'.
 --

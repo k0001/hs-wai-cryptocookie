@@ -7,22 +7,8 @@
 -- import qualified "Wai.CryptoCookie"
 -- @
 --
--- One example of how to obtain a new "Network.Wai".'Network.Wai.Middleware',
---
--- @
--- do (__middleware__, __lookup__) <- do
---       key <- "Wai.CryptoCookie".'autoKeyFileBase16' \"\/run\/my-cookie-encryption-key\"
---       "Wai.CryptoCookie".'middleware' ("Wai.CryptoCookie".'defaultConfig' key)
--- @
---
--- The obtained @__middleware__@ shall be applied to your
--- "Network.Wai".'Wai.Application'.
---
--- The obtained @__lookup__@ function can be used to obtain the 'CryptoCookie'
--- associated with each 'Wai.Request'. It returns 'Nothing' if this particular
--- @__middleware__@ was not used on the given 'Wai.Request'.
---
--- Finally, interact with the 'CryptoCookie' data using 'get' or 'set'.
+-- Use 'middleware' to obtain a function to allow an 'Wai.Application' to
+-- interact with a 'CryptoCookie'  using 'get' or 'set'.
 --
 -- == Do I store session data on the client or on the server?
 --

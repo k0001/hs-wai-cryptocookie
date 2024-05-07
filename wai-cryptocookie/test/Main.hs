@@ -74,72 +74,65 @@ testCookies k = do
    c1 <- do
       c <- fmap WCC.defaultConfig WCC.genKey
       pure c{WCC.key = k}
-   (mw1, look1) <- WCC.middleware c1
+   fmw1 <- WCC.middleware c1
 
-   WT.withSession (app look1 id) do
+   WT.withSession (fmw1 $ app id) do
       sres1 <- WT.request WT.defaultRequest
       WT.assertBody "Nothing" sres1
       WT.assertNoClientCookieExists "t1-a" "SESSION"
 
-   WT.withSession (mw1 $ app look1 id) do
       sres1 <- WT.request WT.defaultRequest
-      WT.assertBody "Just Nothing" sres1
-      WT.assertNoClientCookieExists "t2-a" "SESSION"
+      WT.assertBody "Nothing" sres1
+      WT.assertNoClientCookieExists "t1-b" "SESSION"
 
+   ck0 <- WT.withSession (fmw1 $ app \_ -> Just 900) do
       sres1 <- WT.request WT.defaultRequest
-      WT.assertBody "Just Nothing" sres1
-      WT.assertNoClientCookieExists "t2-b" "SESSION"
-
-   ck0 <- WT.withSession (mw1 $ app look1 (\_ -> Just 900)) do
-      sres1 <- WT.request WT.defaultRequest
-      WT.assertBody "Just Nothing" sres1
-      WT.assertClientCookieExists "t3-a" "SESSION"
+      WT.assertBody "Nothing" sres1
+      WT.assertClientCookieExists "t2-a" "SESSION"
 
       sres2 <- WT.request WT.defaultRequest
-      WT.assertBody "Just (Just 900)" sres2
-      WT.assertClientCookieExists "t3-b" "SESSION"
+      WT.assertBody "Just 900" sres2
+      WT.assertClientCookieExists "t2-b" "SESSION"
 
       WT.getClientCookies
 
-   WT.withSession (mw1 $ app look1 (\_ -> Nothing)) do
+   WT.withSession (fmw1 $ app \_ -> Nothing) do
       WT.modifyClientCookies \_ -> ck0
 
       sres1 <- WT.request WT.defaultRequest
-      WT.assertBody "Just (Just 900)" sres1
-      WT.assertClientCookieExists "t4-a" "SESSION"
+      WT.assertBody "Just 900" sres1
+      WT.assertClientCookieExists "t3-a" "SESSION"
 
       sres2 <- WT.request WT.defaultRequest
-      WT.assertBody "Just Nothing" sres2
+      WT.assertBody "Nothing" sres2
+      WT.assertClientCookieExists "t3-b" "SESSION"
+      WT.assertClientCookieValue "t3-c" "SESSION" ""
+
+   WT.withSession (fmw1 $ app (fmap (+ 1))) do
+      sres1 <- WT.request WT.defaultRequest
+      WT.assertBody "Nothing" sres1
+      WT.assertNoClientCookieExists "t4-a" "SESSION"
+
+      WT.modifyClientCookies \_ -> ck0
+
+      sres2 <- WT.request WT.defaultRequest
+      WT.assertBody "Just 900" sres2
       WT.assertClientCookieExists "t4-b" "SESSION"
-      WT.assertClientCookieValue "t4-c" "SESSION" ""
-
-   WT.withSession (mw1 $ app look1 (fmap (+ 1))) do
-      sres1 <- WT.request WT.defaultRequest
-      WT.assertBody "Just Nothing" sres1
-      WT.assertNoClientCookieExists "t5-a" "SESSION"
-
-      WT.modifyClientCookies \_ -> ck0
 
       sres2 <- WT.request WT.defaultRequest
-      WT.assertBody "Just (Just 900)" sres2
-      WT.assertClientCookieExists "t5-b" "SESSION"
-
-      sres2 <- WT.request WT.defaultRequest
-      WT.assertBody "Just (Just 901)" sres2
-      WT.assertClientCookieExists "t5-c" "SESSION"
+      WT.assertBody "Just 901" sres2
+      WT.assertClientCookieExists "t4-c" "SESSION"
 
 app
-   :: (W.Request -> Maybe (WCC.CryptoCookie Word))
-   -> (Maybe Word -> Maybe Word)
+   :: (Maybe Word -> Maybe Word)
+   -> WCC.CryptoCookie Word
    -> W.Application
-app look g = \req res -> do
-   yyold <- forM (look req) \cc -> do
-      let yold = WCC.get cc
-          ynew = g yold
-      when (ynew /= yold) do
-         atomically $ WCC.set cc ynew
-      pure yold
-   res $ W.responseLBS HT.status200 [] $ fromString $ show yyold
+app g cc = \req res -> do
+   let yold = WCC.get cc
+       ynew = g yold
+   when (ynew /= yold) do
+      atomically $ WCC.set cc ynew
+   res $ W.responseLBS HT.status200 [] $ fromString $ show yold
 
 withTmpDir :: (FilePath -> IO a) -> IO a
 withTmpDir f = do
