@@ -4,7 +4,7 @@
 }:
 mkDerivation {
   pname = "wai-cryptocookie";
-  version = "0.1";
+  version = "0.2";
   src = ./.;
   libraryHaskellDepends = [
     aeson base binary bytestring cookie crypton http-types memory stm

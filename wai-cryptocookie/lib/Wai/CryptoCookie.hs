@@ -8,7 +8,7 @@
 -- @
 --
 -- Use 'middleware' to obtain a function to allow an 'Wai.Application' to
--- interact with a 'CryptoCookie'  using 'get' or 'set'.
+-- interact with a 'CryptoCookie'  using 'get', 'set', 'delete' and 'keep'.
 --
 -- == Do I store session data on the client or on the server?
 --
@@ -49,6 +49,8 @@ module Wai.CryptoCookie
     CryptoCookie
    , get
    , set
+   , delete
+   , keep
 
     -- * Middleware
    , middleware

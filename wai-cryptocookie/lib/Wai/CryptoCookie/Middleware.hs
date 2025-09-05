@@ -6,6 +6,8 @@ module Wai.CryptoCookie.Middleware
    , CryptoCookie
    , get
    , set
+   , delete
+   , keep
    , middleware
    ) where
 
@@ -75,7 +77,7 @@ newEnv Config{key, encoding, setCookie} = do
 
 -- | Read-write access to the "Wai.CryptoCookie" data.
 --
--- See 'get' and 'set'.
+-- See 'get', 'set', 'delete', 'keep'.
 data CryptoCookie a = CryptoCookie ~(Maybe a) (TVar (Maybe (Maybe a)))
 
 -- | The data that came through the 'Wai.Request' cookie, if any.
@@ -83,12 +85,34 @@ get :: CryptoCookie a -> Maybe a
 get (CryptoCookie x _) = x
 
 -- | Cause the eventual 'Wai.Response' corresponding to the current
--- 'Wai.Request' to set the cookie to the specified value if 'Just', or expire
--- (/delete/) the cookie if 'Nothing'.
+-- 'Wai.Request' to __set the cookie to the specified value__.
 --
--- Overrides previous uses of 'set'.
-set :: CryptoCookie a -> Maybe a -> STM ()
-set (CryptoCookie _ x) = writeTVar x . Just
+-- Overrides previous uses of 'set', 'delete', and 'keep'.
+set :: CryptoCookie a -> a -> STM ()
+set (CryptoCookie _ x) = writeTVar x . Just . Just
+
+-- | Cause the eventual 'Wai.Response' corresponding to the current
+-- 'Wai.Request' to __delete the cookie__ by setting its expiration to
+-- a date in the past.
+--
+-- Overrides previous uses of 'set', 'delete', and 'keep'.
+delete :: CryptoCookie a -> STM ()
+delete (CryptoCookie _ x) = writeTVar x $ Just Nothing
+
+-- | Cause the eventual 'Wai.Response' corresponding to the current
+-- 'Wai.Request' to __keep the cookie as it is in the client__.
+--
+-- This is different than 'set'ting the cookie value to the value that came
+-- with the incoming 'Wai.Request', because doing that could potentially
+-- re-write a cookie that was deleted by the client after they sent the
+-- 'Wai.Request' but before we send the 'Wai.Response'.
+--
+-- Doing nothing with a 'CryptoCookie' in your 'Wai.Application' is analogous
+-- to using 'keep' just before returning the 'Wai.Response'.
+--
+-- Overrides previous uses of 'set', 'delete', and 'keep'.
+keep :: CryptoCookie a -> STM ()
+keep (CryptoCookie _ x) = writeTVar x Nothing
 
 -- | Obtain a new 'Wai.Application'-transforming function (more or less a
 -- 'Wai.Middleware') wherein the 'Wai.Application' being transformed can interact
@@ -114,7 +138,7 @@ middleware
 middleware c = liftIO do
    env <- newEnv c
    pure \fapp -> \req respond -> do
-      tv <- newTVarIO Nothing
+      tv <- newTVarIO (Nothing :: Maybe (Maybe a))
       fapp (CryptoCookie (getRequestCookieData env req) tv) req \res -> do
          yya1 <- readTVarIO tv
          let f = case yya1 of
