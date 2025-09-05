@@ -76,7 +76,7 @@ newEnv Config{key, encoding, setCookie} = do
 -- | Read-write access to the "Wai.CryptoCookie" data.
 --
 -- See 'get' and 'set'.
-data CryptoCookie a = CryptoCookie (Maybe a) (TVar (Maybe (Maybe a)))
+data CryptoCookie a = CryptoCookie ~(Maybe a) (TVar (Maybe (Maybe a)))
 
 -- | The data that came through the 'Wai.Request' cookie, if any.
 get :: CryptoCookie a -> Maybe a
