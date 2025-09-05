@@ -13,6 +13,7 @@ import Network.Wai.Test qualified as WT
 import System.Directory
 import System.FilePath
 import System.IO.Error (isAlreadyExistsError)
+import System.Random qualified as R
 
 import Wai.CryptoCookie qualified as WCC
 import Wai.CryptoCookie.Encryption qualified as WCC
@@ -120,6 +121,7 @@ testCookies k = do
       WT.assertClientCookieExists "t3-d" "SESSION"
       WT.assertClientCookieValue "t3-e" "SESSION" ""
 
+   -- set/modify
    WT.withSession (fmw1 $ app (Just . fmap (+ 1))) do
       WT.assertNoClientCookieExists "t4-a" "SESSION"
       sres1 <- WT.request WT.defaultRequest
@@ -134,6 +136,17 @@ testCookies k = do
       WT.assertBody "Just 901" sres2
       WT.assertClientCookieExists "t4-c" "SESSION"
 
+   -- We make sure that no matter how many interactions with
+   -- cc we have, we always keep the last. See app2.
+   WT.withSession (fmw1 app2) do
+      WT.assertNoClientCookieExists "t5-a" "SESSION"
+      sres1 <- WT.request WT.defaultRequest
+      WT.assertBody "Nothing" sres1
+      replicateM_ 1000 do
+         WT.assertClientCookieExists "t5-b" "SESSION"
+         sres1 <- WT.request WT.defaultRequest
+         WT.assertBody "Just 2" sres1
+
 app
    :: (Maybe Word -> Maybe (Maybe Word))
    -> WCC.CryptoCookie Word
@@ -145,6 +158,17 @@ app g cc = \req res -> do
       Just Nothing -> atomically $ WCC.delete cc
       Just (Just new) -> atomically $ WCC.set cc new
    res $ W.responseLBS HT.status200 [] $ fromString $ show yold
+
+app2 :: WCC.CryptoCookie Word -> W.Application
+app2 cc = \req res -> do
+   n <- R.randomRIO (0, 10)
+   xs <- replicateM n $ R.randomRIO ('a', 'c')
+   forM_ xs \case
+      'a' -> atomically $ WCC.set cc 1
+      'b' -> atomically $ WCC.delete cc
+      _ -> atomically $ WCC.keep cc
+   atomically $ WCC.set cc 2
+   res $ W.responseLBS HT.status200 [] $ fromString $ show $ WCC.get cc
 
 withTmpDir :: (FilePath -> IO a) -> IO a
 withTmpDir f = do

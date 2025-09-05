@@ -70,5 +70,6 @@ test-suite test
     wai,
     wai-cryptocookie,
     wai-extra,
+    random,
     stm,
 
