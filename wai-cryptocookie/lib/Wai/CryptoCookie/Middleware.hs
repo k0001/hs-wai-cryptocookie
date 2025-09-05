@@ -94,12 +94,14 @@ set (CryptoCookie _ x) = writeTVar x . Just
 -- 'Wai.Middleware') wherein the 'Wai.Application' being transformed can interact
 -- with a 'CryptoCookie'.
 --
--- * 'middleware' can be called multiple times as long as the 'setCookieName'
--- for the 'SetCookie' specified in 'Config' is different each time.
+-- It is safe to reuse a same 'Key', as well as 'middleware', as well as the
+-- function returned by 'middleware', even concurrently. The library takes care
+-- of randomly and atomically 'initial'izing or 'advance'ing 'Encrypt'ion
+-- contexts as necessary.
 --
--- * It is safe to reuse the same 'Key' for multiple 'middleware' calls.  Each
--- time the 'Key' will have a different randomly 'initial'ized 'Encrypt'ion
--- context.
+-- If you plan to use 'middleware' more than once, which you would do if you
+-- want to have two independently `CryptoCookies`, just make sure each `Config`
+-- uses a different `setCookieName`.
 middleware
    :: forall a m
     . (MonadIO m)

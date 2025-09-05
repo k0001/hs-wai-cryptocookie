@@ -4,6 +4,8 @@
   used. This makes requests that don't need to interact with the
   `CryptoCookie` more efficient.
 
+* Documentation improvements.
+
 
 # Version 0.1
 
