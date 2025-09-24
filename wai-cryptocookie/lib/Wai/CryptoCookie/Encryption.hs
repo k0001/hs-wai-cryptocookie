@@ -29,7 +29,7 @@ import GHC.TypeNats
 import System.IO qualified as IO
 import System.IO.Error qualified as IO
 
--- | Encryption method.
+-- | AEAD encryption method.
 class (KnownNat (KeyLength e), Eq (Key e)) => Encryption (e :: k) where
    -- | Key used for encryption. You can obtain an initial random
    -- 'Key' using 'genKey'. As long as you have access to
@@ -48,7 +48,7 @@ class (KnownNat (KeyLength e), Eq (Key e)) => Encryption (e :: k) where
    data Decrypt e :: Type
 
    -- | Generate a random encryption 'Key'.
-   genKey :: (C.MonadRandom m) => m (Key e)
+   randomKey :: (C.MonadRandom m) => m (Key e)
 
    -- | Load a 'Key' from its bytes representation, if possible.
    keyFromBytes :: (BA.ByteArrayAccess raw) => raw -> Either String (Key e)
@@ -56,7 +56,7 @@ class (KnownNat (KeyLength e), Eq (Key e)) => Encryption (e :: k) where
    -- | Dump the bytes representation of a 'Key'.
    keyToBytes :: (BAS.ByteArrayN (KeyLength e) raw) => Key e -> raw
 
-   -- | Generate initial 'Encrypt'ion and 'Decrypt'ion context for a 'Key'.
+   -- | Generate initial 'Encrypt'ion context for a 'Key'.
    --
    -- The 'Encrypt'ion context could carry for example the next
    -- __randomly generated nonce__ to use for 'encrypt'ion, the 'Key'
@@ -65,7 +65,13 @@ class (KnownNat (KeyLength e), Eq (Key e)) => Encryption (e :: k) where
    --
    -- The 'Decrypt'ion context could carry for example the 'Key' itself or its
    -- derivative used during the 'decrypt'ion process.
-   initial :: (C.MonadRandom m) => Key e -> m (Encrypt e, Decrypt e)
+   initEncrypt :: (C.MonadRandom m) => Key e -> m (Encrypt e)
+
+   -- | Generate initial 'Decrypt'ion context for a 'Key'.
+   --
+   -- The 'Decrypt'ion context could carry for example the 'Key' itself or its
+   -- derivative used during the 'decrypt'ion process.
+   initDecrypt :: Key e -> Decrypt e
 
    -- | After each 'encrypt'ion, the 'Encrypt'ion context will be automatically
    -- 'advance'd through this function. For example, if your 'Encrypt'ion
@@ -74,12 +80,26 @@ class (KnownNat (KeyLength e), Eq (Key e)) => Encryption (e :: k) where
    advance :: Encrypt e -> Encrypt e
 
    -- | Encrypt a plaintext message according to the 'Encrypt'ion context.
-   encrypt :: Encrypt e -> BL.ByteString -> BL.ByteString
+   encrypt
+      :: Encrypt e
+      -> BL.ByteString
+      -- ^ AEAD associated data.
+      -> BL.ByteString
+      -- ^ Message to encrypt.
+      -> BL.ByteString
+      -- ^ Encrypted message including AEAD tag and nonce.
 
    -- | Decrypt a message according to the 'Decrypt'ion context.
    --
    -- The 'String' is for internal debugging purposes only.
-   decrypt :: Decrypt e -> BL.ByteString -> Either String BL.ByteString
+   decrypt
+      :: Decrypt e
+      -> BL.ByteString
+      -- ^ AEAD associated data.
+      -> BL.ByteString
+      -- ^ Encrypted message including AEAD tag and nonce.
+      -> Either String BL.ByteString
+      -- ^ Decrypted message or error message.
 
 -- | If the 'FilePath' exists, then read the base-16 representation of
 -- a 'Key' from it. Ignores trailing newlines.
@@ -98,7 +118,7 @@ autoKeyFileBase16 path = liftIO do
       (guard . IO.isDoesNotExistError)
       (readKeyFileBase16 path)
       \_ -> do
-         k0 <- genKey
+         k0 <- randomKey
          writeKeyFile (BA.convertToBase BA.Base16) path k0
          k1 <- readKeyFileBase16 path
          when (k0 /= k1) $ fail "autoKeyFile: no roundtrip"

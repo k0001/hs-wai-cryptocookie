@@ -27,24 +27,27 @@ instance Encryption "AEAD_AES_128_GCM_SIV" where
       = Encrypt CAES.AES128 C.ChaChaDRG CAGS.Nonce
    newtype Decrypt "AEAD_AES_128_GCM_SIV"
       = Decrypt CAES.AES128
-   genKey = fmap (Key . BAS.unsafeSizedByteArray) (C.getRandomBytes 16)
+   randomKey = fmap (Key . BAS.unsafeSizedByteArray) (C.getRandomBytes 16)
    keyFromBytes =
       maybe (Left "Bad length") (Right . Key) . BAS.fromByteArrayAccess
    keyToBytes (Key key) = BAS.convert key
-   initial (Key key0) = do
+   initEncrypt (Key key0) = do
       drg0 <- C.drgNew
       let (nonce, drg1) = C.withDRG drg0 CAGS.generateNonce
-          aes = C.throwCryptoError $ CAES.cipherInit $ BAS.unSizedByteArray key0
-      pure (Encrypt aes drg1 nonce, Decrypt aes)
+          !aes = C.throwCryptoError $ CAES.cipherInit $ BAS.unSizedByteArray key0
+      pure $ Encrypt aes drg1 nonce
+   initDecrypt (Key key0) =
+      let !aes = C.throwCryptoError $ CAES.cipherInit $ BAS.unSizedByteArray key0
+      in  Decrypt aes
    advance (Encrypt aes drg0 _) =
       let (nonce, drg1) = C.withDRG drg0 CAGS.generateNonce
       in  Encrypt aes drg1 nonce
-   encrypt (Encrypt aes _ nonce) plain =
-      let (tag, cry) = CAGS.encrypt aes nonce B.empty $ B.toStrict plain
+   encrypt (Encrypt aes _ nonce) (BL.toStrict -> aad) (BL.toStrict -> plain) =
+      let (tag, cry) = CAGS.encrypt aes nonce aad plain
       in  BL.fromChunks [BA.convert nonce, BA.convert tag, cry]
-   decrypt = \(Decrypt aes) raw -> do
-      (nonce, tag, cry) <- fromResult $ BAP.parse p (B.toStrict raw)
-      case CAGS.decrypt aes nonce B.empty cry tag of
+   decrypt (Decrypt aes) (BL.toStrict -> aad) (BL.toStrict -> raw) = do
+      (nonce, tag, cry) <- fromResult $ BAP.parse p raw
+      case CAGS.decrypt aes nonce aad cry tag of
          Just x -> pure $ BL.fromStrict x
          Nothing -> Left "Can't decrypt"
      where

@@ -2,10 +2,11 @@
 
 module Main (main) where
 
-import Control.Concurrent.STM
 import Control.Exception qualified as Ex
 import Control.Monad
 import Control.Monad.IO.Class
+import Data.ByteString qualified as B
+import Data.Maybe
 import Data.String
 import Network.HTTP.Types qualified as HT
 import Network.Wai qualified as W
@@ -13,10 +14,9 @@ import Network.Wai.Test qualified as WT
 import System.Directory
 import System.FilePath
 import System.IO.Error (isAlreadyExistsError)
-import System.Random qualified as R
+import Web.Cookie qualified as WC
 
 import Wai.CryptoCookie qualified as WCC
-import Wai.CryptoCookie.Encryption qualified as WCC
 
 main :: IO ()
 main = withTmpDir \tmp -> do
@@ -27,58 +27,62 @@ main = withTmpDir \tmp -> do
    k1c <- WCC.readKeyFileBase16 @"AEAD_AES_256_GCM_SIV" k1path
    when (k1a /= k1c) $ fail "k1a /= k1c"
    testEncryption @"AEAD_AES_256_GCM_SIV" k1a
-   testEncryption @"AEAD_AES_256_GCM_SIV" =<< WCC.genKey
-   testEncryption @"AEAD_AES_128_GCM_SIV" =<< WCC.genKey
-   testCookies @"AEAD_AES_256_GCM_SIV" =<< WCC.genKey
-   testCookies @"AEAD_AES_128_GCM_SIV" =<< WCC.genKey
+   testEncryption @"AEAD_AES_256_GCM_SIV" =<< WCC.randomKey
+   testEncryption @"AEAD_AES_128_GCM_SIV" =<< WCC.randomKey
+   testCookies @"AEAD_AES_256_GCM_SIV" =<< WCC.randomKey
+   testCookies @"AEAD_AES_128_GCM_SIV" =<< WCC.randomKey
    putStrLn "TESTS OK"
 
 testEncryption :: (WCC.Encryption e) => WCC.Key e -> IO ()
 testEncryption key = do
    e0a <- do
-      (s0, de) <- WCC.initial key
+      s0 <- WCC.initEncrypt key
+      let de = WCC.initDecrypt key
       either fail pure do
          let r0 = ""
-         let e0 = WCC.encrypt s0 r0
+         let e0 = WCC.encrypt s0 "a" r0
          when (r0 == e0) $ Left "e0"
-         r0' <- WCC.decrypt de e0
+         r0' <- WCC.decrypt de "a" e0
          when (r0 /= r0') $ Left "r0'"
          let s1 = WCC.advance s0
-         let e0' = WCC.encrypt s1 r0
+         let e0' = WCC.encrypt s1 "b" r0
          when (e0 == e0') $ Left "e0'"
-         r0'' <- WCC.decrypt de e0'
+         r0'' <- WCC.decrypt de "b" e0'
          when (r0 /= r0'') $ Left "r0''"
          let r1 = "hello"
          let s2 = WCC.advance s1
-         let e1 = WCC.encrypt s2 r1
+         let e1 = WCC.encrypt s2 "" r1
          when (r1 == e1) $ Left "e1"
-         r1' <- WCC.decrypt de e1
+         r1' <- WCC.decrypt de "" e1
          when (r1 /= r1') $ Left "r1'"
          let s3 = WCC.advance s2
-         let e1' = WCC.encrypt s3 r1
+         let e1' = WCC.encrypt s3 "boo" r1
          when (e1 == e1') $ Left "e1'"
-         r1'' <- WCC.decrypt de e1'
+         r1'' <- WCC.decrypt de "boo" e1'
          when (r1 /= r1'') $ Left "r1''"
          pure e0
 
    e0b <- do
-      (s0, de) <- WCC.initial key
+      s0 <- WCC.initEncrypt key
+      let de = WCC.initDecrypt key
       either fail pure do
          let r0 = ""
-         let e0 = WCC.encrypt s0 r0
+         let e0 = WCC.encrypt s0 "aa" r0
          pure e0
 
    when (e0a == e0b) $ fail "e0b"
 
 testCookies :: (WCC.Encryption e) => WCC.Key e -> IO ()
 testCookies k = do
-   c1 <- do
-      c <- fmap WCC.defaultConfig WCC.genKey
-      pure c{WCC.key = k}
-   fmw1 <- WCC.middleware c1
+   cc :: WCC.CryptoCookie () Word <- do
+      c0 <- WCC.defaultConfig <$> WCC.randomKey
+      WCC.newCryptoCookie c0{WCC.key = k}
+
+   let fapp1 :: (Maybe Word -> Maybe (Maybe Word)) -> W.Application
+       fapp1 = \g -> WCC.middleware cc (app1 cc g . join . fmap snd) (Just ())
 
    -- keeping cookies untouched
-   WT.withSession (fmw1 $ app \_ -> Nothing) do
+   WT.withSession (fapp1 \_ -> Nothing) do
       WT.assertNoClientCookieExists "t0-a" "SESSION"
       sres1 <- WT.request WT.defaultRequest
       WT.assertBody "Nothing" sres1
@@ -88,7 +92,7 @@ testCookies k = do
       WT.assertNoClientCookieExists "t0-c" "SESSION"
 
    -- explicitly deleting cookie
-   WT.withSession (fmw1 $ app \_ -> Just Nothing) do
+   WT.withSession (fapp1 \_ -> Just Nothing) do
       WT.assertNoClientCookieExists "t1-a" "SESSION"
       sres1 <- WT.request WT.defaultRequest
       WT.assertBody "Nothing" sres1
@@ -98,7 +102,7 @@ testCookies k = do
       WT.assertClientCookieExists "t1-c" "SESSION"
 
    -- explicitely setting cookie
-   ck0 <- WT.withSession (fmw1 $ app \_ -> Just (Just 900)) do
+   ck0 <- WT.withSession (fapp1 \_ -> Just (Just 900)) do
       WT.assertNoClientCookieExists "t2-a" "SESSION"
       sres1 <- WT.request WT.defaultRequest
       WT.assertBody "Nothing" sres1
@@ -109,7 +113,7 @@ testCookies k = do
       WT.getClientCookies
 
    -- modify and explicitly delete
-   WT.withSession (fmw1 $ app \_ -> Just Nothing) do
+   WT.withSession (fapp1 \_ -> Just Nothing) do
       WT.assertNoClientCookieExists "t3-a" "SESSION"
       WT.modifyClientCookies \_ -> ck0
       WT.assertClientCookieExists "t3-b" "SESSION"
@@ -122,7 +126,7 @@ testCookies k = do
       WT.assertClientCookieValue "t3-e" "SESSION" ""
 
    -- set/modify
-   WT.withSession (fmw1 $ app (Just . fmap (+ 1))) do
+   WT.withSession (fapp1 (Just . fmap (+ 1))) do
       WT.assertNoClientCookieExists "t4-a" "SESSION"
       sres1 <- WT.request WT.defaultRequest
       WT.assertBody "Nothing" sres1
@@ -136,39 +140,24 @@ testCookies k = do
       WT.assertBody "Just 901" sres2
       WT.assertClientCookieExists "t4-c" "SESSION"
 
-   -- We make sure that no matter how many interactions with
-   -- cc we have, we always keep the last. See app2.
-   WT.withSession (fmw1 app2) do
-      WT.assertNoClientCookieExists "t5-a" "SESSION"
-      sres1 <- WT.request WT.defaultRequest
-      WT.assertBody "Nothing" sres1
-      replicateM_ 1000 do
-         WT.assertClientCookieExists "t5-b" "SESSION"
-         sres1 <- WT.request WT.defaultRequest
-         WT.assertBody "Just 2" sres1
-
-app
-   :: (Maybe Word -> Maybe (Maybe Word))
-   -> WCC.CryptoCookie Word
+app1
+   :: WCC.CryptoCookie () Word
+   -> (Maybe Word -> Maybe (Maybe Word))
+   -> Maybe Word
    -> W.Application
-app g cc = \req res -> do
-   let yold = WCC.get cc
-   case g yold of
-      Nothing -> pure ()
-      Just Nothing -> atomically $ WCC.delete cc
-      Just (Just new) -> atomically $ WCC.set cc new
-   res $ W.responseLBS HT.status200 [] $ fromString $ show yold
-
-app2 :: WCC.CryptoCookie Word -> W.Application
-app2 cc = \req res -> do
-   n <- R.randomRIO (0, 10)
-   xs <- replicateM n $ R.randomRIO ('a', 'c')
-   forM_ xs \case
-      'a' -> atomically $ WCC.set cc 1
-      'b' -> atomically $ WCC.delete cc
-      _ -> atomically $ WCC.keep cc
-   atomically $ WCC.set cc 2
-   res $ W.responseLBS HT.status200 [] $ fromString $ show $ WCC.get cc
+app1 cc g yold = \req respond -> do
+   ysc :: Maybe WC.SetCookie <- case g yold of
+      Nothing -> pure Nothing
+      Just Nothing -> pure $ Just $ WCC.expireCookie cc
+      Just (Just new) -> Just <$> WCC.setCookie cc () new
+   respond
+      $ W.responseLBS
+         HT.status200
+         ( fmap
+            (\sc -> ("Set-Cookie", WC.renderSetCookieBS sc))
+            (maybeToList ysc)
+         )
+      $ fromString (show yold)
 
 withTmpDir :: (FilePath -> IO a) -> IO a
 withTmpDir f = do

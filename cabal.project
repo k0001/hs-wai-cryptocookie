@@ -1,7 +1,12 @@
+packages:
+  wai-cryptocookie/
+
+--
 profiling: True
-profiling-detail: all-functions
+profiling-detail: toplevel-functions
+executable-profiling: True
 optimization: True
 documentation: True
+benchmarks: True
 tests: True
-packages:
-  ./wai-cryptocookie
+test-show-details: streaming

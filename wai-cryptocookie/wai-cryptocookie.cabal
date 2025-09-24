@@ -1,6 +1,6 @@
 cabal-version: 2.4
 name: wai-cryptocookie
-version: 0.2
+version: 0.3
 license: Apache-2.0
 license-file: LICENSE
 extra-source-files: README.md CHANGELOG.md
@@ -24,6 +24,7 @@ common basic
     DerivingStrategies
     DuplicateRecordFields
     LambdaCase
+    MultiWayIf
     OverloadedRecordDot
     OverloadedStrings
     TypeFamilies
@@ -36,24 +37,23 @@ library
   hs-source-dirs: lib
   exposed-modules:
     Wai.CryptoCookie
-    Wai.CryptoCookie.Encoding
-    Wai.CryptoCookie.Encryption
   other-modules:
+    Wai.CryptoCookie.Encryption
     Wai.CryptoCookie.Encryption.AEAD_AES_128_GCM_SIV
     Wai.CryptoCookie.Encryption.AEAD_AES_256_GCM_SIV
-    Wai.CryptoCookie.Middleware
   build-depends:
     aeson,
     binary,
     bytestring,
+    case-insensitive,
     cookie,
     crypton,
     http-types,
     memory,
-    stm,
     text,
     time,
     wai,
+    wai-csrf,
 
 test-suite test
   import: basic
@@ -62,14 +62,12 @@ test-suite test
   main-is: Main.hs
   ghc-options: -threaded -with-rtsopts=-N
   build-depends:
-    aeson,
-    binary,
+    bytestring,
+    cookie,
     directory,
     filepath,
     http-types,
     wai,
     wai-cryptocookie,
     wai-extra,
-    random,
-    stm,
 

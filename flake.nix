@@ -1,68 +1,87 @@
 {
-  description = "Haskell 'wai-cryptocookie' library";
-
   inputs = {
-    flakety.url = "github:k0001/flakety/e59d1244867cb95a7bf052e29ed569419c31914d";
-    nixpkgs.follows = "flakety/nixpkgs";
-    flake-parts.follows = "flakety/flake-parts";
+    nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
+    flake-parts.url = "github:hercules-ci/flake-parts";
+    haskell-flake.url = "github:srid/haskell-flake";
+    hs-wai-csrf.url = "github:k0001/hs-wai-csrf";
+    hs-wai-csrf.inputs.nixpkgs.follows = "nixpkgs";
+    hs-wai-csrf.inputs.haskell-flake.follows = "haskell-flake";
+    hs-wai-csrf.inputs.flake-parts.follows = "flake-parts";
   };
-
-  outputs = inputs@{ ... }:
-    inputs.flake-parts.lib.mkFlake { inherit inputs; } {
-      flake.overlays.default = inputs.nixpkgs.lib.composeManyExtensions [
-        inputs.flakety.overlays.default
-        (final: prev:
-          let
-            hsLib = prev.haskell.lib;
-            hsClean = drv:
-              hsLib.overrideCabal drv
-              (old: { src = prev.lib.sources.cleanSource old.src; });
-          in {
-            haskell = prev.haskell // {
-              packageOverrides = prev.lib.composeExtensions
-                (prev.haskell.packageOverrides or (_: _: { })) (hself: hsuper: {
-                  wai-cryptocookie =
-                    hsClean (hself.callPackage ./wai-cryptocookie { });
-                });
-            };
-          })
-      ];
-      systems = [ "x86_64-linux" "i686-linux" "aarch64-linux" ];
-      perSystem = { config, pkgs, system, ... }: {
-        _module.args.pkgs = import inputs.nixpkgs {
-          inherit system;
-          overlays = [ inputs.self.overlays.default ];
-        };
-        packages = {
-          wai-cryptocookie__ghc98 =
-            pkgs.haskell.packages.ghc98.wai-cryptocookie;
-          wai-cryptocookie__ghc98__sdist =
-            pkgs.haskell.packages.ghc98.cabalSdist { src = ./wai-cryptocookie; };
-          wai-cryptocookie__ghc98__sdistDoc =
-            pkgs.haskell.lib.documentationTarball config.packages.wai-cryptocookie__ghc98;
-          default = pkgs.releaseTools.aggregate {
-            name = "every output from this flake";
-            constituents = [
-              config.packages.wai-cryptocookie__ghc98
-              config.packages.wai-cryptocookie__ghc98.doc
-              config.packages.wai-cryptocookie__ghc98__sdist
-              config.packages.wai-cryptocookie__ghc98__sdistDoc
-              config.devShells.ghc98
-            ];
+  outputs =
+    inputs@{
+      self,
+      nixpkgs,
+      flake-parts,
+      ...
+    }:
+    flake-parts.lib.mkFlake { inherit inputs; } (
+      { withSystem, ... }:
+      let
+        # mapListToAttrs f [a b] = {a = f a; b = f b;}
+        mapListToAttrs =
+          f: xs:
+          builtins.listToAttrs (
+            builtins.map (x: {
+              name = x;
+              value = f x;
+            }) xs
+          );
+        ghcVersions = [
+          "ghc984"
+          "ghc9102"
+          "ghc9122"
+        ];
+      in
+      {
+        systems = nixpkgs.lib.systems.flakeExposed;
+        imports = [
+          inputs.haskell-flake.flakeModule
+        ];
+        flake.haskellFlakeProjectModules = mapListToAttrs (
+          ghc:
+          (
+            { pkgs, lib, ... }:
+            withSystem pkgs.system (
+              { config, ... }: config.haskellProjects.${ghc}.defaults.projectModules.output
+            )
+          )
+        ) ghcVersions;
+        perSystem =
+          {
+            self',
+            pkgs,
+            config,
+            ...
+          }:
+          {
+            haskellProjects = mapListToAttrs (ghc: {
+              basePackages = pkgs.haskell.packages.${ghc};
+              settings.wai-cryptocookie = {
+                check = true;
+                haddock = true;
+                libraryProfiling = true;
+              };
+              packages = {
+                #brick.source = "2.9";
+                #wai-csrf.source = "${inputs.hs-wai-csrf}/wai-csrf";
+              };
+              autoWire = [
+                "packages"
+                "checks"
+                "devShells"
+              ];
+              imports = [
+                inputs.hs-wai-csrf.haskellFlakeProjectModules.${ghc}
+              ];
+              devShell = {
+                tools = hp: { inherit (pkgs) cabal2nix; };
+              };
+            }) ghcVersions;
+            packages.default = self'.packages.ghc9122-wai-cryptocookie;
+            packages.doc = self'.packages.ghc9122-wai-cryptocookie.doc;
+            devShells.default = self'.devShells.ghc9122;
           };
-        };
-        devShells = let
-          mkShellFor = ghc:
-            ghc.shellFor {
-              packages = p: [ p.wai-cryptocookie ];
-              withHoogle = true;
-              nativeBuildInputs =
-                [ pkgs.cabal-install pkgs.cabal2nix pkgs.ghcid ];
-            };
-        in {
-          default = config.devShells.ghc98;
-          ghc98 = mkShellFor pkgs.haskell.packages.ghc98;
-        };
-      };
-    };
+      }
+    );
 }

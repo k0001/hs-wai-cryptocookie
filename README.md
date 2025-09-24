@@ -1,1 +1,0 @@
-wai-cryptocookie/README.md

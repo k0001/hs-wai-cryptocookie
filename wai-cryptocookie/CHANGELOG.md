@@ -1,3 +1,10 @@
+# Version 0.3
+
+* BREAKING CHANGE: Pretty much everything is the library was changed, in
+  order for the library to become a bit lower level, and to support
+  CSRF protection.
+
+
 # Version 0.2
 
 * BREAKING CHANGE: The type of `set` changed so that `set cc Nothing` is
