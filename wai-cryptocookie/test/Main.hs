@@ -74,12 +74,12 @@ testEncryption key = do
 
 testCookies :: (WCC.Encryption e) => WCC.Key e -> IO ()
 testCookies k = do
-   cc :: WCC.CryptoCookie () Word <- do
+   env :: WCC.Env () Word <- do
       c0 <- WCC.defaultConfig <$> WCC.randomKey
-      WCC.newCryptoCookie c0{WCC.key = k, WCC.aadEncode = \() -> "hello"}
+      WCC.newEnv c0{WCC.key = k, WCC.aadEncode = \() -> "hello"}
 
    let fapp1 :: (Maybe Word -> Maybe (Maybe Word)) -> W.Application
-       fapp1 = \g -> WCC.middleware cc (app1 cc g . join . fmap snd) (Just ())
+       fapp1 = \g -> WCC.middleware env (app1 env g . join . fmap snd) (Just ())
 
    -- keeping cookies untouched
    WT.withSession (fapp1 \_ -> Nothing) do
@@ -141,15 +141,15 @@ testCookies k = do
       WT.assertClientCookieExists "t4-c" "SESSION"
 
 app1
-   :: WCC.CryptoCookie () Word
+   :: WCC.Env () Word
    -> (Maybe Word -> Maybe (Maybe Word))
    -> Maybe Word
    -> W.Application
-app1 cc g yold = \req respond -> do
+app1 env g yold = \req respond -> do
    ysc :: Maybe WC.SetCookie <- case g yold of
       Nothing -> pure Nothing
-      Just Nothing -> pure $ Just $ WCC.expireCookie cc
-      Just (Just new) -> Just <$> WCC.setCookie cc () new
+      Just Nothing -> pure $ Just $ WCC.expireCookie env
+      Just (Just new) -> Just <$> WCC.setCookie env () new
    respond
       $ W.responseLBS
          HT.status200

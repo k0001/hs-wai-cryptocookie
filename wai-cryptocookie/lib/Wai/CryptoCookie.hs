@@ -8,8 +8,8 @@ module Wai.CryptoCookie
    ( -- * Config
     defaultConfig
    , Config (..)
-   , CryptoCookie
-   , newCryptoCookie
+   , Env
+   , newEnv
 
     -- * Request and responses
    , middleware
@@ -69,7 +69,7 @@ import Web.Cookie qualified as WC
 --
 --      @
 --      "Wai.CSRF".'Wai.CSRF.middleware' /myCsrfConfig/
---         . "Wai.CryptoCookie".'middleware' /myCryptoCookie/
+--         . "Wai.CryptoCookie".'middleware' /myCryptoCookieEnv/
 --              :: ('Maybe' ("Wai.CSRF".'Wai.CSRF.Token', msg) -> 'Wai.Application')
 --              -> 'Wai.Application'
 --      @
@@ -92,7 +92,7 @@ defaultConfig key =
       , msgDecode = Ae.decode
       }
 
--- | Configuration for 'CryptoCookie'.
+-- | Configuration for 'Env'.
 --
 -- Consider using 'defaultConfig' and updating desired fields only.
 data Config (aad :: Type) (msg :: Type) = forall e.
@@ -113,11 +113,11 @@ data Config (aad :: Type) (msg :: Type) = forall e.
 
 -- | Stateful encryption environment for interacting with the encrypted cookie.
 --
--- It is safe to use 'CryptoCookie' concurrently if necessary. Concurrency is handled
+-- It is safe to use 'Env' concurrently if necessary. Concurrency is handled
 -- safely internally.
 --
--- Obtain with 'newCryptoCookie'.
-data CryptoCookie (aad :: Type) (msg :: Type) = CryptoCookie
+-- Obtain with 'newEnv'.
+data Env (aad :: Type) (msg :: Type) = Env
    { cookieName :: B.ByteString
    , encodeEncrypt :: aad -> msg -> IO BL.ByteString
    , decryptDecode :: aad -> BL.ByteString -> Maybe msg
@@ -125,13 +125,13 @@ data CryptoCookie (aad :: Type) (msg :: Type) = CryptoCookie
 
 --------------------------------------------------------------------------------
 
--- | Obtain a new 'CryptoCookie'.
-newCryptoCookie :: (MonadIO m) => Config aad msg -> m (CryptoCookie aad msg)
-newCryptoCookie c@Config{key} = liftIO do
+-- | Obtain a new 'Env'.
+newEnv :: (MonadIO m) => Config aad msg -> m (Env aad msg)
+newEnv c@Config{key} = liftIO do
    let dc = initDecrypt key
    ecRef <- newIORef =<< initEncrypt key
    pure
-      CryptoCookie
+      Env
          { encodeEncrypt = \aad0 msg0 -> do
             let !aad1 :: BL.ByteString = c.aadEncode aad0
                 !msg1 :: BL.ByteString = c.msgEncode msg0
@@ -154,8 +154,8 @@ newCryptoCookie c@Config{key} = liftIO do
 -- "Wai.CSRF".'Wai.CSRF.middleware', using "Wai.CSRF".'Wai.CSRF.Token' as
 -- @aad@.
 middleware
-   :: CryptoCookie aad msg
-   -- ^ Encryption environment. Obtain with 'newCryptoCookie'.
+   :: Env aad msg
+   -- ^ Encryption environment. Obtain with 'newEnv'.
    -> (Maybe (aad, Maybe msg) -> Wai.Application)
    -- ^ Underlying 'Wai.Application' having access to the decrypted cookie
    -- @msg@, if any.
@@ -165,18 +165,18 @@ middleware
    -> Maybe aad
    -- ^ AEAD associated data of the incomming 'Wai.Request', if any.
    -> Wai.Application
-middleware cc fapp yaad req respond = do
-   let ymsg = msgFromRequestCookie cc req =<< yaad
+middleware env fapp yaad req respond = do
+   let ymsg = msgFromRequestCookie env req =<< yaad
    fapp (fmap (,ymsg) yaad) req respond
 
 -- | Obtain the @msg@ from the 'Wai.Request' cookies.
 --
 -- You don't need to use this if you are using 'middleware'.
-msgFromRequestCookie :: CryptoCookie aad msg -> Wai.Request -> aad -> Maybe msg
-msgFromRequestCookie cc r aad = do
-   [d64] <- pure $ lookupMany cc.cookieName $ requestCookies r
+msgFromRequestCookie :: Env aad msg -> Wai.Request -> aad -> Maybe msg
+msgFromRequestCookie env r aad = do
+   [d64] <- pure $ lookupMany env.cookieName $ requestCookies r
    case BA.convertFromBase BA.Base64URLUnpadded d64 of
-      Right cry -> cc.decryptDecode aad $ BL.fromStrict cry
+      Right cry -> env.decryptDecode aad $ BL.fromStrict cry
       Left _ -> Nothing
 
 --------------------------------------------------------------------------------
@@ -210,11 +210,11 @@ msgFromRequestCookie cc r aad = do
 -- recommended that you generate a new "Wai.CSRF".'Wai.CSRF.Token' at least
 -- each time a new user session is established, but possibly more frequently,
 -- and send it alongside this one (see "Wai.CSRF".'Wai.CSRF.setCookie').
-setCookie :: (MonadIO m) => CryptoCookie aad msg -> aad -> msg -> m WC.SetCookie
-setCookie cc aad msg = liftIO do
-   cry <- cc.encodeEncrypt aad msg
+setCookie :: (MonadIO m) => Env aad msg -> aad -> msg -> m WC.SetCookie
+setCookie env aad msg = liftIO do
+   cry <- env.encodeEncrypt aad msg
    pure $
-      (expireCookie cc)
+      (expireCookie env)
          { WC.setCookieExpires = Nothing
          , WC.setCookieMaxAge = Nothing
          , WC.setCookieValue =
@@ -223,14 +223,14 @@ setCookie cc aad msg = liftIO do
 
 -- | Construct a 'C.SetCookie' expiring the cookie named 'Config'\'s
 -- @cookieName@.
-expireCookie :: CryptoCookie aad msg -> WC.SetCookie
-expireCookie cc =
+expireCookie :: Env aad msg -> WC.SetCookie
+expireCookie env =
    WC.defaultSetCookie
       { WC.setCookieDomain = Nothing
       , WC.setCookieExpires = Just (Time.posixSecondsToUTCTime 0)
       , WC.setCookieHttpOnly = True
       , WC.setCookieMaxAge = Just (negate 1)
-      , WC.setCookieName = cc.cookieName
+      , WC.setCookieName = env.cookieName
       , WC.setCookiePath = Just "/"
       , WC.setCookieSameSite = Just WC.sameSiteLax
       , WC.setCookieSecure = True
