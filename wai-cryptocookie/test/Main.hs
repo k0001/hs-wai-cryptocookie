@@ -76,7 +76,7 @@ testCookies :: (WCC.Encryption e) => WCC.Key e -> IO ()
 testCookies k = do
    cc :: WCC.CryptoCookie () Word <- do
       c0 <- WCC.defaultConfig <$> WCC.randomKey
-      WCC.newCryptoCookie c0{WCC.key = k}
+      WCC.newCryptoCookie c0{WCC.key = k, WCC.aadEncode = \() -> "hello"}
 
    let fapp1 :: (Maybe Word -> Maybe (Maybe Word)) -> W.Application
        fapp1 = \g -> WCC.middleware cc (app1 cc g . join . fmap snd) (Just ())
@@ -162,7 +162,7 @@ app1 cc g yold = \req respond -> do
 withTmpDir :: (FilePath -> IO a) -> IO a
 withTmpDir f = do
    tmp0 <- getTemporaryDirectory
-   Ex.bracket (acq tmp0 0) (\_ -> pure () {-removeDirectoryRecursive-}) f
+   Ex.bracket (acq tmp0 0) (removeDirectoryRecursive) f
   where
    acq :: FilePath -> Word -> IO FilePath
    acq prefix !n = do
