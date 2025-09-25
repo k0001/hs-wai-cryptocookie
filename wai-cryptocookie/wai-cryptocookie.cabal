@@ -43,7 +43,6 @@ library
     Wai.CryptoCookie.Encryption.AEAD_AES_256_GCM_SIV
   build-depends:
     aeson,
-    binary,
     bytestring,
     case-insensitive,
     cookie,
