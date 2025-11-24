@@ -5,9 +5,14 @@ module Main (main) where
 import Control.Exception qualified as Ex
 import Control.Monad
 import Control.Monad.IO.Class
+import Data.Aeson qualified as Ae
 import Data.ByteString qualified as B
+import Data.ByteString.Lazy qualified as BL
 import Data.Maybe
+import Data.Proxy
 import Data.String
+import Data.Text qualified as T
+import GHC.TypeLits (natVal)
 import Network.HTTP.Types qualified as HT
 import Network.Wai qualified as W
 import Network.Wai.Test qualified as WT
@@ -26,12 +31,64 @@ main = withTmpDir \tmp -> do
    when (k1a /= k1b) $ fail "k1a /= k1b"
    k1c <- WCC.readKeyFileBase16 @"AEAD_AES_256_GCM_SIV" k1path
    when (k1a /= k1c) $ fail "k1a /= k1c"
+
    testEncryption @"AEAD_AES_256_GCM_SIV" k1a
    testEncryption @"AEAD_AES_256_GCM_SIV" =<< WCC.randomKey
    testEncryption @"AEAD_AES_128_GCM_SIV" =<< WCC.randomKey
    testCookies @"AEAD_AES_256_GCM_SIV" =<< WCC.randomKey
    testCookies @"AEAD_AES_128_GCM_SIV" =<< WCC.randomKey
+
+   testBase16Load
+   testBase16Roundtrip k1a
+   testAesonRoundtrip k1a
+
    putStrLn "TESTS OK"
+
+testBase16Roundtrip :: forall e. (WCC.Encryption e) => WCC.Key e -> IO ()
+testBase16Roundtrip k = do
+   let kBase16 = WCC.keyToBase16Text k
+       rawLen = fromInteger $ natVal $ Proxy @(WCC.KeyLength e)
+   when (T.length kBase16 /= 2 * rawLen) do
+      fail "testBase16Roundtrip: unexpected length"
+   case WCC.keyFromBase16Text kBase16 of
+      Left e -> fail ("testBase16Roundtrip: " <> show e)
+      Right k2
+         | k /= k2 -> fail "testBase16Roundtrip: no roundtrip"
+         | otherwise -> pure ()
+
+testBase16Load :: IO ()
+testBase16Load = do
+   let kBase16 = "7aa382cffa3715609cdc6f782fc44d6c0f854e2b35641ddfd9173e427c418ec8"
+   case WCC.keyFromBase16Text kBase16 of
+      Left e -> fail ("testBase16Load: " <> show e)
+      Right k
+         | WCC.keyToBase16Text k /= kBase16 ->
+            fail "testBase16Load: no roundtrip"
+         | otherwise ->
+            testEncryption @"AEAD_AES_256_GCM_SIV" k
+
+testAesonRoundtrip :: forall e. (WCC.Encryption e) => WCC.Key e -> IO ()
+testAesonRoundtrip k = do
+   let kJSON = Ae.encode k
+       rawLen = fromInteger $ natVal $ Proxy @(WCC.KeyLength e)
+   when (BL.length kJSON /= 2 + 2 * rawLen) do
+      fail "testAesonRoundtrip: unexpected length"
+   case Ae.eitherDecode kJSON of
+      Left e -> fail ("testAesonRoundtrip: " <> show e)
+      Right k2
+         | k /= k2 -> fail "testAesonRoundtrip: no roundtrip"
+         | otherwise -> pure ()
+
+testAesonLoad :: IO ()
+testAesonLoad = do
+   let kJSON = "\"7aa382cffa3715609cdc6f782fc44d6c0f854e2b35641ddfd9173e427c418ec8\""
+   case Ae.eitherDecode kJSON of
+      Left e -> fail ("testAesonLoad: " <> show e)
+      Right k
+         | Ae.encode k /= kJSON ->
+            fail "testAesonLoad: no roundtrip"
+         | otherwise ->
+            testEncryption @"AEAD_AES_256_GCM_SIV" k
 
 testEncryption :: (WCC.Encryption e) => WCC.Key e -> IO ()
 testEncryption key = do

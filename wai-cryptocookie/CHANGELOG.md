@@ -1,3 +1,10 @@
+# Version 0.3.1
+
+* Added `keyFromBase16Text`, `keyToBase16Text`.
+
+* Added `ToJSON` instance for `Key`.
+
+
 # Version 0.3
 
 * BREAKING CHANGE: Pretty much everything is the library was changed, in

@@ -9,6 +9,8 @@ module Wai.CryptoCookie.Encryption
    , readKeyFileBase16
    , readKeyFile
    , writeKeyFile
+   , keyFromBase16Text
+   , keyToBase16Text
    ) where
 
 import Control.Exception qualified as Ex
@@ -23,6 +25,7 @@ import Data.ByteArray.Sized qualified as BAS
 import Data.ByteString.Lazy qualified as BL
 import Data.Char qualified as Char
 import Data.Kind (Type)
+import Data.Text qualified as T
 import Data.Text.Encoding qualified as T
 import Data.Word
 import GHC.TypeNats
@@ -183,11 +186,20 @@ writeKeyFile g path key = liftIO do
 
 -- | Base-16 encoded.
 instance (Encryption e) => Ae.FromJSON (Key e) where
-   parseJSON = Ae.withText "Key" \t ->
-      -- Note that un-scrubbable bytes will continue to exist in @t@.
-      case BA.convertFromBase BA.Base16 (T.encodeUtf8 t) of
-         Right (kraw :: BA.ScrubbedBytes) ->
-            case keyFromBytes kraw of
-               Right key -> pure key
-               Left err -> fail err
-         _ -> fail "Invalid key"
+   parseJSON = Ae.withText "Key" (either fail pure . keyFromBase16Text)
+
+-- | Base-16 encoded.
+instance (Encryption e) => Ae.ToJSON (Key e) where
+   toJSON = Ae.toJSON . keyToBase16Text
+
+-- Note that un-scrubbable bytes will continue to exist in the 'T.Text'.
+keyToBase16Text :: forall e. (Encryption e) => Key e -> T.Text
+keyToBase16Text = \k ->
+   let b = keyToBytes k :: BAS.SizedByteArray (KeyLength e) BA.ScrubbedBytes
+   in  T.decodeUtf8 $ BA.convertToBase BA.Base16 b
+
+-- Note that un-scrubbable bytes will continue to exist in the 'T.Text'.
+keyFromBase16Text :: (Encryption e) => T.Text -> Either String (Key e)
+keyFromBase16Text = \t -> do
+   x <- BA.convertFromBase BA.Base16 (T.encodeUtf8 t)
+   keyFromBytes (x :: BA.ScrubbedBytes)

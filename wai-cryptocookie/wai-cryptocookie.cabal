@@ -61,11 +61,13 @@ test-suite test
   main-is: Main.hs
   ghc-options: -threaded -with-rtsopts=-N
   build-depends:
+    aeson,
     bytestring,
     cookie,
     directory,
     filepath,
     http-types,
+    text,
     wai,
     wai-cryptocookie,
     wai-extra,

@@ -23,6 +23,8 @@ module Wai.CryptoCookie
    , readKeyFileBase16
    , readKeyFile
    , writeKeyFile
+   , keyFromBase16Text
+   , keyToBase16Text
    ) where
 
 import Control.Monad.IO.Class
@@ -95,7 +97,8 @@ defaultConfig key =
 -- | Configuration for 'Env'.
 --
 -- Consider using 'defaultConfig' and updating desired fields only.
-data Config (aad :: Type) (msg :: Type) = forall e.
+data Config (aad :: Type) (msg :: Type)
+   = forall e.
     (Encryption e) =>
    Config
    { cookieName :: B.ByteString
