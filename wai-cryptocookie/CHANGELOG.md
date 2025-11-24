@@ -4,6 +4,8 @@
 
 * Added `ToJSON` instance for `Key`.
 
+* Added `Binary` instance for `Key`.
+
 
 # Version 0.3
 

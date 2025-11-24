@@ -43,6 +43,7 @@ library
     Wai.CryptoCookie.Encryption.AEAD_AES_256_GCM_SIV
   build-depends:
     aeson,
+    binary,
     bytestring,
     case-insensitive,
     cookie,
@@ -62,6 +63,7 @@ test-suite test
   ghc-options: -threaded -with-rtsopts=-N
   build-depends:
     aeson,
+    binary,
     bytestring,
     cookie,
     directory,

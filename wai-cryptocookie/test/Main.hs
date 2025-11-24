@@ -6,6 +6,7 @@ import Control.Exception qualified as Ex
 import Control.Monad
 import Control.Monad.IO.Class
 import Data.Aeson qualified as Ae
+import Data.Binary qualified as Bin
 import Data.ByteString qualified as B
 import Data.ByteString.Lazy qualified as BL
 import Data.Maybe
@@ -40,7 +41,12 @@ main = withTmpDir \tmp -> do
 
    testBase16Load
    testBase16Roundtrip k1a
+
+   testAesonLoad
    testAesonRoundtrip k1a
+
+   testBinaryLoad
+   testBinaryRoundtrip k1a
 
    putStrLn "TESTS OK"
 
@@ -62,10 +68,8 @@ testBase16Load = do
    case WCC.keyFromBase16Text kBase16 of
       Left e -> fail ("testBase16Load: " <> show e)
       Right k
-         | WCC.keyToBase16Text k /= kBase16 ->
-            fail "testBase16Load: no roundtrip"
-         | otherwise ->
-            testEncryption @"AEAD_AES_256_GCM_SIV" k
+         | WCC.keyToBase16Text k /= kBase16 -> fail "testBase16Load: no roundtrip"
+         | otherwise -> testEncryption @"AEAD_AES_256_GCM_SIV" k
 
 testAesonRoundtrip :: forall e. (WCC.Encryption e) => WCC.Key e -> IO ()
 testAesonRoundtrip k = do
@@ -85,10 +89,30 @@ testAesonLoad = do
    case Ae.eitherDecode kJSON of
       Left e -> fail ("testAesonLoad: " <> show e)
       Right k
-         | Ae.encode k /= kJSON ->
-            fail "testAesonLoad: no roundtrip"
-         | otherwise ->
-            testEncryption @"AEAD_AES_256_GCM_SIV" k
+         | Ae.encode k /= kJSON -> fail "testAesonLoad: no roundtrip"
+         | otherwise -> testEncryption @"AEAD_AES_256_GCM_SIV" k
+
+testBinaryRoundtrip :: forall e. (WCC.Encryption e) => WCC.Key e -> IO ()
+testBinaryRoundtrip k = do
+   let kBin = Ae.encode k
+       rawLen = fromInteger $ natVal $ Proxy @(WCC.KeyLength e)
+   when (BL.length kBin /= 2 + 2 * rawLen) do
+      fail "testBinaryRoundtrip: unexpected length"
+   case Ae.eitherDecode kBin of
+      Left e -> fail ("testBinaryRoundtrip: " <> show e)
+      Right k2
+         | k /= k2 -> fail "testBinaryRoundtrip: no roundtrip"
+         | otherwise -> pure ()
+
+testBinaryLoad :: IO ()
+testBinaryLoad = do
+   let kBin = "_a_right_amount_of_sample_bytes_"
+   case Bin.decodeOrFail kBin of
+      Left (_, _, e) -> fail ("testBinaryLoad: " <> show e)
+      Right (lo, _, k)
+         | not (BL.null lo) -> fail "testBinaryLoad: leftovers"
+         | Bin.encode k /= kBin -> fail "testBinaryLoad: no roundtrip"
+         | otherwise -> testEncryption @"AEAD_AES_256_GCM_SIV" k
 
 testEncryption :: (WCC.Encryption e) => WCC.Key e -> IO ()
 testEncryption key = do

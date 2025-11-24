@@ -18,13 +18,18 @@ import Control.Monad
 import Control.Monad.IO.Class
 import Crypto.Random qualified as C
 import Data.Aeson qualified as Ae
+import Data.Binary qualified as Bin
+import Data.Binary.Get qualified as Bin
+import Data.Binary.Put qualified as Bin
 import Data.Bits
 import Data.ByteArray qualified as BA
 import Data.ByteArray.Encoding qualified as BA
 import Data.ByteArray.Sized qualified as BAS
+import Data.ByteString qualified as B
 import Data.ByteString.Lazy qualified as BL
 import Data.Char qualified as Char
 import Data.Kind (Type)
+import Data.Proxy
 import Data.Text qualified as T
 import Data.Text.Encoding qualified as T
 import Data.Word
@@ -203,3 +208,12 @@ keyFromBase16Text :: (Encryption e) => T.Text -> Either String (Key e)
 keyFromBase16Text = \t -> do
    x <- BA.convertFromBase BA.Base16 (T.encodeUtf8 t)
    keyFromBytes (x :: BA.ScrubbedBytes)
+
+-- | Same as 'keyToBytes' and 'keyFromBytes'. No length prefix.
+instance (Encryption e) => Bin.Binary (Key e) where
+   put = \k -> do
+      let sb = keyToBytes k :: BAS.SizedByteArray (KeyLength e) B.ByteString
+      Bin.putByteString $ BAS.unSizedByteArray sb
+   get =
+      let len = fromIntegral (natVal (Proxy @(KeyLength e)))
+      in  either fail pure . keyFromBytes =<< Bin.getByteString len
