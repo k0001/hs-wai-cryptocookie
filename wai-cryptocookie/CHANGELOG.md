@@ -1,3 +1,8 @@
+# Version 0.3.2
+
+* Build also with GHC 9.4 and 9.6.
+
+
 # Version 0.3.1
 
 * Added `keyFromBase16Text`, `keyToBase16Text`.

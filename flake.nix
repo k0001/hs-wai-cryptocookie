@@ -28,6 +28,8 @@
             }) xs
           );
         ghcVersions = [
+          "ghc948"
+          "ghc967"
           "ghc984"
           "ghc9102"
           "ghc9122"

@@ -157,7 +157,9 @@ testCookies :: (WCC.Encryption e) => WCC.Key e -> IO ()
 testCookies k = do
    env :: WCC.Env () Word <- do
       c0 <- WCC.defaultConfig <$> WCC.randomKey
-      WCC.newEnv c0{WCC.key = k, WCC.aadEncode = \() -> "hello"}
+      WCC.newEnv $ case c0 of
+         WCC.Config{..} ->
+            WCC.Config{WCC.key = k, WCC.aadEncode = \() -> "hello", ..}
 
    let fapp1 :: (Maybe Word -> Maybe (Maybe Word)) -> W.Application
        fapp1 = \g -> WCC.middleware env (app1 env g . join . fmap snd) (Just ())
