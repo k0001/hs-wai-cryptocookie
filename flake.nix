@@ -1,6 +1,6 @@
 {
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
+    nixpkgs.url = "github:nixos/nixpkgs?rev=46db2e09e1d3f113a13c0d7b81e2f221c63b8ce9";
     flake-parts.url = "github:hercules-ci/flake-parts";
     haskell-flake.url = "github:srid/haskell-flake";
     hs-wai-csrf.url = "github:k0001/hs-wai-csrf";
@@ -33,6 +33,7 @@
           "ghc984"
           "ghc9102"
           "ghc9122"
+          "ghc9141"
         ];
       in
       {
@@ -65,8 +66,6 @@
                 libraryProfiling = true;
               };
               packages = {
-                #brick.source = "2.9";
-                #wai-csrf.source = "${inputs.hs-wai-csrf}/wai-csrf";
               };
               autoWire = [
                 "packages"
