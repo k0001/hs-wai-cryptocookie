@@ -102,9 +102,9 @@ data Config (aad :: Type) (msg :: Type)
     (Encryption e) =>
    Config
    { cookieName :: B.ByteString
-   -- ^ Consider using a @\"__Host-Http-SESSION\"@.
+   -- ^ Consider using @\"__Host-Http-SESSION\"@.
    , key :: Key e
-   -- ^ Consider using a @'Key' \"AEAD_AES_256_GCM_SIV\"@.
+   -- ^ Consider using @'Key' \"AEAD_AES_256_GCM_SIV\"@.
    , aadEncode :: aad -> BL.ByteString
    -- ^ These are the exact bytes that will be used as AEAD associated data.
    -- Consider using the raw bytes of a "Wai.CSRF".'Wai.CSRF.Token'.

@@ -160,11 +160,11 @@
         "wai": "wai"
       },
       "locked": {
-        "lastModified": 1774954632,
-        "narHash": "sha256-xKz/ExtFdQr370vwgyM7gBwbIAGKhcQCANQoyEE7QBs=",
+        "lastModified": 1774982134,
+        "narHash": "sha256-lDjDudA0L01KrKbq3M0TUEXV4ebzvZuJ1I0FwyidLr0=",
         "owner": "k0001",
         "repo": "hs-wai-csrf",
-        "rev": "4cff27306f27a858695f8ed2f4346b9ca7ea93e4",
+        "rev": "edf267a163050c25b241d3a374e6140d1338e1a3",
         "type": "github"
       },
       "original": {
