@@ -155,9 +155,9 @@ testEncryption key = do
 
 testCookies :: (WCC.Encryption e) => WCC.Key e -> IO ()
 testCookies k = do
+   conf <- WCC.defaultConfig <$> WCC.randomKey
    env :: WCC.Env () Word <- do
-      c0 <- WCC.defaultConfig <$> WCC.randomKey
-      WCC.newEnv $ case c0 of
+      WCC.newEnv $ case conf of
          WCC.Config{..} ->
             WCC.Config{WCC.key = k, WCC.aadEncode = \() -> "hello", ..}
 
@@ -166,62 +166,62 @@ testCookies k = do
 
    -- keeping cookies untouched
    WT.withSession (fapp1 \_ -> Nothing) do
-      WT.assertNoClientCookieExists "t0-a" "SESSION"
+      WT.assertNoClientCookieExists "t0-a" conf.cookieName
       sres1 <- WT.request WT.defaultRequest
       WT.assertBody "Nothing" sres1
-      WT.assertNoClientCookieExists "t0-b" "SESSION"
+      WT.assertNoClientCookieExists "t0-b" conf.cookieName
       sres1 <- WT.request WT.defaultRequest
       WT.assertBody "Nothing" sres1
-      WT.assertNoClientCookieExists "t0-c" "SESSION"
+      WT.assertNoClientCookieExists "t0-c" conf.cookieName
 
    -- explicitly deleting cookie
    WT.withSession (fapp1 \_ -> Just Nothing) do
-      WT.assertNoClientCookieExists "t1-a" "SESSION"
+      WT.assertNoClientCookieExists "t1-a" conf.cookieName
       sres1 <- WT.request WT.defaultRequest
       WT.assertBody "Nothing" sres1
-      WT.assertClientCookieExists "t1-b" "SESSION"
+      WT.assertClientCookieExists "t1-b" conf.cookieName
       sres1 <- WT.request WT.defaultRequest
       WT.assertBody "Nothing" sres1
-      WT.assertClientCookieExists "t1-c" "SESSION"
+      WT.assertClientCookieExists "t1-c" conf.cookieName
 
    -- explicitely setting cookie
    ck0 <- WT.withSession (fapp1 \_ -> Just (Just 900)) do
-      WT.assertNoClientCookieExists "t2-a" "SESSION"
+      WT.assertNoClientCookieExists "t2-a" conf.cookieName
       sres1 <- WT.request WT.defaultRequest
       WT.assertBody "Nothing" sres1
-      WT.assertClientCookieExists "t2-b" "SESSION"
+      WT.assertClientCookieExists "t2-b" conf.cookieName
       sres2 <- WT.request WT.defaultRequest
       WT.assertBody "Just 900" sres2
-      WT.assertClientCookieExists "t2-c" "SESSION"
+      WT.assertClientCookieExists "t2-c" conf.cookieName
       WT.getClientCookies
 
    -- modify and explicitly delete
    WT.withSession (fapp1 \_ -> Just Nothing) do
-      WT.assertNoClientCookieExists "t3-a" "SESSION"
+      WT.assertNoClientCookieExists "t3-a" conf.cookieName
       WT.modifyClientCookies \_ -> ck0
-      WT.assertClientCookieExists "t3-b" "SESSION"
+      WT.assertClientCookieExists "t3-b" conf.cookieName
       sres1 <- WT.request WT.defaultRequest
       WT.assertBody "Just 900" sres1
-      WT.assertClientCookieExists "t3-c" "SESSION"
+      WT.assertClientCookieExists "t3-c" conf.cookieName
       sres2 <- WT.request WT.defaultRequest
       WT.assertBody "Nothing" sres2
-      WT.assertClientCookieExists "t3-d" "SESSION"
-      WT.assertClientCookieValue "t3-e" "SESSION" ""
+      WT.assertClientCookieExists "t3-d" conf.cookieName
+      WT.assertClientCookieValue "t3-e" conf.cookieName ""
 
    -- set/modify
    WT.withSession (fapp1 (Just . fmap (+ 1))) do
-      WT.assertNoClientCookieExists "t4-a" "SESSION"
+      WT.assertNoClientCookieExists "t4-a" conf.cookieName
       sres1 <- WT.request WT.defaultRequest
       WT.assertBody "Nothing" sres1
-      WT.assertClientCookieExists "t4-b" "SESSION"
+      WT.assertClientCookieExists "t4-b" conf.cookieName
       WT.modifyClientCookies \_ -> ck0
-      WT.assertClientCookieExists "t4-c" "SESSION"
+      WT.assertClientCookieExists "t4-c" conf.cookieName
       sres2 <- WT.request WT.defaultRequest
       WT.assertBody "Just 900" sres2
-      WT.assertClientCookieExists "t4-d" "SESSION"
+      WT.assertClientCookieExists "t4-d" conf.cookieName
       sres2 <- WT.request WT.defaultRequest
       WT.assertBody "Just 901" sres2
-      WT.assertClientCookieExists "t4-c" "SESSION"
+      WT.assertClientCookieExists "t4-c" conf.cookieName
 
 app1
    :: WCC.Env () Word

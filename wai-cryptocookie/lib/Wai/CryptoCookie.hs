@@ -45,7 +45,7 @@ import Web.Cookie qualified as WC
 
 -- | Default 'Config':
 --
--- * Cookie name is @SESSION@.
+-- * Cookie name is @__Host-Http-SESSION@.
 --
 -- * Encoding and decoding of @msg@ is done through 'Ae.ToJSON' and
 --   'Ae.FromJSON'.
@@ -86,7 +86,7 @@ defaultConfig
    -> Config Wai.CSRF.Token msg
 defaultConfig key =
    Config
-      { cookieName = "SESSION"
+      { cookieName = "__Host-Http-SESSION"
       , key
       , aadEncode = \(Wai.CSRF.Token t) ->
          BL.fromStrict $ BAS.unSizedByteArray t
@@ -102,7 +102,7 @@ data Config (aad :: Type) (msg :: Type)
     (Encryption e) =>
    Config
    { cookieName :: B.ByteString
-   -- ^ Consider using a @\"SESSION\"@.
+   -- ^ Consider using a @\"__Host-Http-SESSION\"@.
    , key :: Key e
    -- ^ Consider using a @'Key' \"AEAD_AES_256_GCM_SIV\"@.
    , aadEncode :: aad -> BL.ByteString

@@ -2,6 +2,8 @@
 
 * Depend on `ram` instead of `memory`.
 
+* Use `__Host-Http-SESSION` as default cookie name.
+
 
 # Version 0.3.2
 
