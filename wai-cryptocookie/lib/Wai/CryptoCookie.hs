@@ -65,6 +65,16 @@ import Web.Cookie qualified as WC
 --     sure that you rotate the "Wai.CSRF".'Wai.CSRF.Token' ocassionally, at
 --     least each time a new user session is established, so as to avoid CSRF
 --     risks.
+--
+-- * This 'defaultConfig' suggests you should be composing 'middleware' and
+--   "Wai.CSRF".'Wai.CSRF.middleware' in this way:
+--
+--      @
+--      "Wai.CSRF".'Wai.CSRF.middleware' /myCsrfConfig/
+--         . "Wai.CryptoCookie".'middleware' /myCryptoCookieEnv/
+--              :: ('Maybe' ("Wai.CSRF".'Wai.CSRF.Token', msg) -> 'Wai.Application')
+--              -> 'Wai.Application'
+--      @
 defaultConfig
    :: (Ae.ToJSON msg, Ae.FromJSON msg)
    => Key "AEAD_AES_256_GCM_SIV"
@@ -143,8 +153,9 @@ newEnv c@Config{key} = liftIO do
 -- decrypted and made available to the underlying 'Wai.Application'.
 --
 -- The @aad@ is the AEAD associated data that came with the 'Wai.Request'.
--- Consider using 'middleware' in conjunction with "Wai.CSRF".'Wai.CSRF.Token'
--- as @aad@.
+-- Consider using 'middleware' in conjunction with
+-- "Wai.CSRF".'Wai.CSRF.middleware', using "Wai.CSRF".'Wai.CSRF.Token' as
+-- @aad@.
 middleware
    :: Env aad msg
    -- ^ Encryption environment. Obtain with 'newEnv'.
