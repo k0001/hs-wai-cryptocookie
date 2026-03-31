@@ -1,8 +1,9 @@
 {
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs?rev=46db2e09e1d3f113a13c0d7b81e2f221c63b8ce9";
+    nixpkgs.url = "github:nixos/nixpkgs/46db2e09e1d3f113a13c0d7b81e2f221c63b8ce9";
     flake-parts.url = "github:hercules-ci/flake-parts";
     haskell-flake.url = "github:srid/haskell-flake";
+
     hs-wai-csrf.url = "github:k0001/hs-wai-csrf";
     hs-wai-csrf.inputs.nixpkgs.follows = "nixpkgs";
     hs-wai-csrf.inputs.haskell-flake.follows = "haskell-flake";
@@ -28,12 +29,12 @@
             }) xs
           );
         ghcVersions = [
-          "ghc948"
-          "ghc967"
-          "ghc984"
-          "ghc9102"
+          # "ghc948"
+          # "ghc967"
+          # "ghc984"
+          # "ghc9102"
           "ghc9122"
-          "ghc9141"
+          # "ghc9141"
         ];
       in
       {

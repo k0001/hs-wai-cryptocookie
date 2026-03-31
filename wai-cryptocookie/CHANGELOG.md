@@ -1,3 +1,8 @@
+# Version 0.4
+
+* Depend on `ram` instead of `memory`.
+
+
 # Version 0.3.2
 
 * Build also with GHC 9.4 and 9.6.

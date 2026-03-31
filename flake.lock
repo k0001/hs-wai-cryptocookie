@@ -1,5 +1,73 @@
 {
   "nodes": {
+    "crypto-token": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1772756382,
+        "narHash": "sha256-rEbz14R0bBEAJRkhIQTjRahGs2aJKzefDQ/bElCpoao=",
+        "owner": "kazu-yamamoto",
+        "repo": "crypto-token",
+        "rev": "9e535d9015015f58ceacae3c757bc7e52d499d15",
+        "type": "github"
+      },
+      "original": {
+        "owner": "kazu-yamamoto",
+        "ref": "v0.2.0",
+        "repo": "crypto-token",
+        "type": "github"
+      }
+    },
+    "crypton": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1774665482,
+        "narHash": "sha256-1+RTmrjKP8pDHabX9ODmWeiRFk7mlYb+8vTLApiSMfI=",
+        "owner": "kazu-yamamoto",
+        "repo": "crypton",
+        "rev": "f08a7202f5313c06afb67abb5d0fccb29b26a65e",
+        "type": "github"
+      },
+      "original": {
+        "owner": "kazu-yamamoto",
+        "ref": "crypton-v1.1.2",
+        "repo": "crypton",
+        "type": "github"
+      }
+    },
+    "crypton-certificate": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1772841668,
+        "narHash": "sha256-HSVKOVZ1zEFezh02youcszRc17y4OrC9LbwNH9RCi44=",
+        "owner": "kazu-yamamoto",
+        "repo": "crypton-certificate",
+        "rev": "bdbbdeda4c0ba5e276a5d18bb8d5372b7d342afb",
+        "type": "github"
+      },
+      "original": {
+        "owner": "kazu-yamamoto",
+        "ref": "crypton-x509-1.9.0",
+        "repo": "crypton-certificate",
+        "type": "github"
+      }
+    },
+    "crypton-connection": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1772857980,
+        "narHash": "sha256-yMUZOBYqzMNmv+6EM/VOGuI5c6uU2kQeAEMkI0b/5og=",
+        "owner": "kazu-yamamoto",
+        "repo": "crypton-connection",
+        "rev": "1f791044f5bd6c332f348eabaae89af56a10a857",
+        "type": "github"
+      },
+      "original": {
+        "owner": "kazu-yamamoto",
+        "ref": "v0.4.6",
+        "repo": "crypton-connection",
+        "type": "github"
+      }
+    },
     "flake-parts": {
       "inputs": {
         "nixpkgs-lib": "nixpkgs-lib"
@@ -33,29 +101,143 @@
         "type": "github"
       }
     },
+    "hpke": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1772841156,
+        "narHash": "sha256-a+SIyGaw4kDYxtZP2NhRX+NJaYRShpzV0uZfsbvbfHE=",
+        "owner": "kazu-yamamoto",
+        "repo": "hpke",
+        "rev": "dfe4426edfe5170ce560417fbd41c170b3a09983",
+        "type": "github"
+      },
+      "original": {
+        "owner": "kazu-yamamoto",
+        "ref": "v0.1.0",
+        "repo": "hpke",
+        "type": "github"
+      }
+    },
+    "hs-tls": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1772856253,
+        "narHash": "sha256-XinXkyX67bZmn8xUIL4c+9+T8AqxP9owpiZLmfGr2vg=",
+        "owner": "haskell-tls",
+        "repo": "hs-tls",
+        "rev": "0f20d2b4b358148458f2dbdf258643e9a5f0647a",
+        "type": "github"
+      },
+      "original": {
+        "owner": "haskell-tls",
+        "ref": "tls-2.3.0",
+        "repo": "hs-tls",
+        "type": "github"
+      }
+    },
     "hs-wai-csrf": {
       "inputs": {
+        "crypto-token": "crypto-token",
+        "crypton": "crypton",
+        "crypton-certificate": "crypton-certificate",
+        "crypton-connection": "crypton-connection",
         "flake-parts": [
           "flake-parts"
         ],
         "haskell-flake": [
           "haskell-flake"
         ],
+        "hpke": "hpke",
+        "hs-tls": "hs-tls",
+        "http-client": "http-client",
+        "http-semantics": "http-semantics",
+        "http2": "http2",
+        "network-run": "network-run",
         "nixpkgs": [
           "nixpkgs"
-        ]
+        ],
+        "ram": "ram",
+        "wai": "wai"
       },
       "locked": {
-        "lastModified": 1774791791,
-        "narHash": "sha256-u0uUBLz3lctfM7V3yI30fkG/utVcQFQ5Siemd/lRrvc=",
+        "lastModified": 1774954632,
+        "narHash": "sha256-xKz/ExtFdQr370vwgyM7gBwbIAGKhcQCANQoyEE7QBs=",
         "owner": "k0001",
         "repo": "hs-wai-csrf",
-        "rev": "ba95e26586b6c295754d3cc88fc25f33b944a6db",
+        "rev": "4cff27306f27a858695f8ed2f4346b9ca7ea93e4",
         "type": "github"
       },
       "original": {
         "owner": "k0001",
         "repo": "hs-wai-csrf",
+        "type": "github"
+      }
+    },
+    "http-client": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1773212618,
+        "narHash": "sha256-TBXYQAiX+Xg/mrziAzaziwXOUdLZ0f2jDeYyP1XYj+o=",
+        "owner": "snoyberg",
+        "repo": "http-client",
+        "rev": "5f0d14724af440e439ce5803b941911609e766e8",
+        "type": "github"
+      },
+      "original": {
+        "owner": "snoyberg",
+        "repo": "http-client",
+        "rev": "5f0d14724af440e439ce5803b941911609e766e8",
+        "type": "github"
+      }
+    },
+    "http-semantics": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1763682314,
+        "narHash": "sha256-rh0z51EKvsu5rQd5n2z3fSRjjEObouNZSBPO9NFYOF0=",
+        "owner": "kazu-yamamoto",
+        "repo": "http-semantics",
+        "rev": "0d08e42f9b3c1683d379008d7896fdbb35b4679b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "kazu-yamamoto",
+        "ref": "v0.4.0",
+        "repo": "http-semantics",
+        "type": "github"
+      }
+    },
+    "http2": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1763683658,
+        "narHash": "sha256-Pqqv/6q3XxeDUg2IhrpSyRz6uJ6s6RR1+qTFYle1iFI=",
+        "owner": "kazu-yamamoto",
+        "repo": "http2",
+        "rev": "2fa3d1b6f3e73c057685e0cf8544e0cae78f86af",
+        "type": "github"
+      },
+      "original": {
+        "owner": "kazu-yamamoto",
+        "ref": "v5.4.0",
+        "repo": "http2",
+        "type": "github"
+      }
+    },
+    "network-run": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1763529229,
+        "narHash": "sha256-j3Pkvn/eXiciQQIIc+SkWiFSLqbVyAc0SfLyIRZUsv8=",
+        "owner": "kazu-yamamoto",
+        "repo": "network-run",
+        "rev": "f49d0eeafcecce3e26e66edb3209a04cba30defa",
+        "type": "github"
+      },
+      "original": {
+        "owner": "kazu-yamamoto",
+        "ref": "v0.5.0",
+        "repo": "network-run",
         "type": "github"
       }
     },
@@ -90,12 +272,46 @@
         "type": "github"
       }
     },
+    "ram": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1774739967,
+        "narHash": "sha256-eMjjn48rZ70Cedw45YB2LbexrXPToGxYsmtoYHHs7Jw=",
+        "owner": "jappeace",
+        "repo": "ram",
+        "rev": "fb16285c2fc303894575757786cf8f87d183b88f",
+        "type": "github"
+      },
+      "original": {
+        "owner": "jappeace",
+        "repo": "ram",
+        "rev": "fb16285c2fc303894575757786cf8f87d183b88f",
+        "type": "github"
+      }
+    },
     "root": {
       "inputs": {
         "flake-parts": "flake-parts",
         "haskell-flake": "haskell-flake",
         "hs-wai-csrf": "hs-wai-csrf",
         "nixpkgs": "nixpkgs"
+      }
+    },
+    "wai": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1773738088,
+        "narHash": "sha256-l+T7xkTWPQRUGfUp4lMUwgmzod6a6fI6WZNxDAzg3fo=",
+        "owner": "yesodweb",
+        "repo": "wai",
+        "rev": "63536095e64e7703d97c8b1fb89ae8417f51090b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "yesodweb",
+        "repo": "wai",
+        "rev": "63536095e64e7703d97c8b1fb89ae8417f51090b",
+        "type": "github"
       }
     }
   },

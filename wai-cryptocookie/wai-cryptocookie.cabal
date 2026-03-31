@@ -1,6 +1,6 @@
 cabal-version: 2.4
 name: wai-cryptocookie
-version: 0.3.2
+version: 0.4
 license: Apache-2.0
 license-file: LICENSE
 extra-source-files: README.md CHANGELOG.md
@@ -13,7 +13,7 @@ synopsis: Encrypted cookies for WAI
 description: Encrypted cookies for WAI
 homepage: https://github.com/k0001/hs-wai-cryptocookie
 bug-reports: https://github.com/k0001/hs-wai-cryptocookie/issues
-tested-with: GHC == 9.8.1
+tested-with: GHC == 9.12.2
 
 common basic
   default-language: GHC2021
@@ -49,7 +49,7 @@ library
     cookie,
     crypton,
     http-types,
-    memory,
+    ram,
     text,
     time,
     wai,
