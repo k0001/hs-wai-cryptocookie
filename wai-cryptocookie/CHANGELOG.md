@@ -4,6 +4,8 @@
 
 * Use `__Host-Http-SESSION` as default cookie name.
 
+* Add `"cookieName"` `HasField` to `Env`.
+
 
 # Version 0.3.2
 

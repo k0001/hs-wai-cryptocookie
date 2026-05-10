@@ -36,6 +36,7 @@ import Data.ByteString.Lazy qualified as BL
 import Data.IORef
 import Data.Kind (Type)
 import Data.Time.Clock.POSIX qualified as Time
+import GHC.Records
 import Network.Wai qualified as Wai
 import Wai.CSRF qualified
 import Wai.CryptoCookie.Encryption
@@ -121,10 +122,14 @@ data Config (aad :: Type) (msg :: Type)
 --
 -- Obtain with 'newEnv'.
 data Env (aad :: Type) (msg :: Type) = Env
-   { cookieName :: B.ByteString
+   { _cookieName :: B.ByteString
    , encodeEncrypt :: aad -> msg -> IO BL.ByteString
    , decryptDecode :: aad -> BL.ByteString -> Maybe msg
    }
+
+-- | Same as 'Config''s @cookieName@.
+instance HasField "cookieName" (Env aad msg) B.ByteString where
+   getField = (._cookieName)
 
 --------------------------------------------------------------------------------
 
@@ -145,7 +150,7 @@ newEnv c@Config{key} = liftIO do
             case decrypt dc aad1 cry of
                Right msg -> c.msgDecode msg
                _ -> Nothing
-         , cookieName = c.cookieName
+         , _cookieName = c.cookieName
          }
 
 -- | Transform an 'Wai.Application' so that if there is an encrypted
