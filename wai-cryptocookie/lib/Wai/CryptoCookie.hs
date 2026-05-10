@@ -12,7 +12,6 @@ module Wai.CryptoCookie
    , newEnv
 
     -- * Request and responses
-   , middleware
    , msgFromRequestCookie
    , setCookie
    , expireCookie
@@ -66,16 +65,6 @@ import Web.Cookie qualified as WC
 --     sure that you rotate the "Wai.CSRF".'Wai.CSRF.Token' ocassionally, at
 --     least each time a new user session is established, so as to avoid CSRF
 --     risks.
---
--- * This 'defaultConfig' suggests you should be composing 'middleware' and
---   "Wai.CSRF".'Wai.CSRF.middleware' in this way:
---
---      @
---      "Wai.CSRF".'Wai.CSRF.middleware' /myCsrfConfig/
---         . "Wai.CryptoCookie".'middleware' /myCryptoCookieEnv/
---              :: ('Maybe' ("Wai.CSRF".'Wai.CSRF.Token', msg) -> 'Wai.Application')
---              -> 'Wai.Application'
---      @
 defaultConfig
    :: (Ae.ToJSON msg, Ae.FromJSON msg)
    => Key "AEAD_AES_256_GCM_SIV"
@@ -153,33 +142,7 @@ newEnv c@Config{key} = liftIO do
          , _cookieName = c.cookieName
          }
 
--- | Transform an 'Wai.Application' so that if there is an encrypted
--- message in the incoming 'Wai.Request' cookies, it will be automatically
--- decrypted and made available to the underlying 'Wai.Application'.
---
--- The @aad@ is the AEAD associated data that came with the 'Wai.Request'.
--- Consider using 'middleware' in conjunction with
--- "Wai.CSRF".'Wai.CSRF.middleware', using "Wai.CSRF".'Wai.CSRF.Token' as
--- @aad@.
-middleware
-   :: Env aad msg
-   -- ^ Encryption environment. Obtain with 'newEnv'.
-   -> (Maybe (aad, Maybe msg) -> Wai.Application)
-   -- ^ Underlying 'Wai.Application' having access to the decrypted cookie
-   -- @msg@, if any.
-   --
-   -- Also, seeing as @msg@ being available implies @aad@ is available too, we
-   -- output both values together in a manner that represents this relationship.
-   -> Maybe aad
-   -- ^ AEAD associated data of the incomming 'Wai.Request', if any.
-   -> Wai.Application
-middleware env fapp yaad req respond = do
-   let ymsg = msgFromRequestCookie env req =<< yaad
-   fapp (fmap (,ymsg) yaad) req respond
-
 -- | Obtain the @msg@ from the 'Wai.Request' cookies.
---
--- You don't need to use this if you are using 'middleware'.
 msgFromRequestCookie :: Env aad msg -> Wai.Request -> aad -> Maybe msg
 msgFromRequestCookie env r aad = do
    [d64] <- pure $ lookupMany env.cookieName $ requestCookies r

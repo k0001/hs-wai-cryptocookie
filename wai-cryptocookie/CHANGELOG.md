@@ -6,6 +6,8 @@
 
 * Add `"cookieName"` `HasField` to `Env`.
 
+* Removed `middleware`.
+
 
 # Version 0.3.2
 
